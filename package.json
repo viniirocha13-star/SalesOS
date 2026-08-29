@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0 --port 43147",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "worker": "npx tsx src/workers/index.ts",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset --force"
@@ -18,10 +21,12 @@
     "@base-ui/react": "^1.7.0",
     "@prisma/client": "6.19.3",
     "bcryptjs": "^3.0.3",
+    "bullmq": "^6.3.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.4.0",
+    "ioredis": "^6.0.0",
     "lucide-react": "^1.37.0",
     "next": "16.3.3",
     "next-auth": "^5.0.0-beta.32",
@@ -50,6 +55,7 @@
     "prisma": "6.19.3",
     "tailwindcss": "^4",
     "tsx": "^4.23.12",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }

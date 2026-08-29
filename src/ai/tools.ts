@@ -211,7 +211,7 @@ export async function runTool(
     case "request_human": {
       await prisma.conversation.update({
         where: { id: ctx.conversationId },
-        data: { status: "HANDOFF_HUMANO" },
+        data: { status: "HANDOFF_HUMANO", aiEnabled: false, salesStage: "HUMAN_HANDOFF" },
       });
       const reason = (args.reason as HandoffReason) || "IA_SEM_CONFIANCA";
       await prisma.humanHandoff.create({

@@ -1,3 +1,5 @@
+import { aiModelFor, type AiTask } from "@/lib/ai-models";
+
 export type LlmMessage = { role: "system" | "user" | "assistant" | "tool"; content: string; name?: string };
 
 export type LlmTool = {
@@ -12,27 +14,36 @@ export type LlmResult = {
   content: string;
   toolCalls: LlmToolCall[];
   model: string;
+  intent?: string;
+  usage?: { input?: number; output?: number };
 };
 
 export interface LlmProvider {
   readonly name: string;
-  complete(input: { messages: LlmMessage[]; tools: LlmTool[] }): Promise<LlmResult>;
+  complete(input: {
+    messages: LlmMessage[];
+    tools: LlmTool[];
+    purpose?: "SALES" | "UTILITY" | "COMPLEX";
+  }): Promise<LlmResult>;
 }
 
 export class OpenAiLlmProvider implements LlmProvider {
   readonly name = "openai";
 
-  async complete(input: { messages: LlmMessage[]; tools: LlmTool[] }): Promise<LlmResult> {
+  async complete(input: { messages: LlmMessage[]; tools: LlmTool[]; purpose?: AiTask }): Promise<LlmResult> {
     const key = process.env.OPENAI_API_KEY;
-    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+    const model = aiModelFor(input.purpose ?? "SALES");
     if (!key) throw new Error("OPENAI_API_KEY ausente");
+    if (process.env.OPENAI_API_STYLE === "responses") {
+      return this.responses(key, model, input);
+    }
+    return this.chatCompletions(key, model, input);
+  }
 
+  private async chatCompletions(key: string, model: string, input: { messages: LlmMessage[]; tools: LlmTool[] }): Promise<LlmResult> {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
         messages: input.messages.map((m) => ({
@@ -46,10 +57,9 @@ export class OpenAiLlmProvider implements LlmProvider {
         })),
       }),
     });
-    if (!res.ok) {
-      throw new Error("Falha na API OpenAI");
-    }
+    if (!res.ok) throw new Error("Falha na API OpenAI");
     const json = (await res.json()) as {
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
       choices: {
         message: {
           content?: string;
@@ -61,11 +71,47 @@ export class OpenAiLlmProvider implements LlmProvider {
     return {
       model,
       content: msg?.content ?? "",
+      usage: { input: json.usage?.prompt_tokens, output: json.usage?.completion_tokens },
       toolCalls: (msg?.tool_calls ?? []).map((c) => ({
         id: c.id,
         name: c.function.name,
         arguments: JSON.parse(c.function.arguments || "{}"),
       })),
+    };
+  }
+
+  private async responses(key: string, model: string, input: { messages: LlmMessage[]; tools: LlmTool[] }): Promise<LlmResult> {
+    const res = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        input: input.messages.map((m) => `${m.role}: ${m.content}`).join("\n"),
+        tools: input.tools.map((t) => ({
+          type: "function",
+          name: t.name,
+          description: t.description,
+          parameters: t.parameters,
+        })),
+      }),
+    });
+    if (!res.ok) return this.chatCompletions(key, model, input);
+    const json = (await res.json()) as {
+      output_text?: string;
+      output?: { type: string; name?: string; arguments?: string; call_id?: string }[];
+      usage?: { input_tokens?: number; output_tokens?: number };
+    };
+    return {
+      model,
+      content: json.output_text ?? "",
+      usage: { input: json.usage?.input_tokens, output: json.usage?.output_tokens },
+      toolCalls: (json.output ?? [])
+        .filter((o) => o.type === "function_call")
+        .map((o) => ({
+          id: o.call_id ?? "tool",
+          name: o.name ?? "",
+          arguments: JSON.parse(o.arguments || "{}"),
+        })),
     };
   }
 }
@@ -75,7 +121,6 @@ export function getLlmProvider(): LlmProvider {
   return new DevMockLlmProvider();
 }
 
-/** Heurística determinística para desenvolvimento local. Identificada no simulador. */
 export class DevMockLlmProvider implements LlmProvider {
   readonly name = "dev_mock_llm";
 
@@ -86,11 +131,7 @@ export class DevMockLlmProvider implements LlmProvider {
 
     if (hasToolResults) {
       const lastTool = [...input.messages].reverse().find((m) => m.role === "tool");
-      return {
-        model: this.name,
-        toolCalls: [],
-        content: composeFromTools(lastUser, lastTool?.content ?? ""),
-      };
+      return { model: this.name, toolCalls: [], content: composeFromTools(lastUser, lastTool?.content ?? "") };
     }
 
     const calls: LlmToolCall[] = [];
@@ -98,14 +139,9 @@ export class DevMockLlmProvider implements LlmProvider {
       calls.push({ id: "t1", name: "request_human", arguments: { reason: "CLIENTE_SOLICITOU" } });
     } else if (/não quero|nao quero|caro|depois|pensar|concorrente/.test(lower)) {
       calls.push({ id: "t1", name: "register_objection", arguments: { text: lastUser } });
-      calls.push({ id: "t2", name: "get_faq", arguments: { query: lastUser } });
     } else if (/viab|cep|rua |bairro|endere/.test(lower)) {
-      calls.push({
-        id: "t1",
-        name: "check_viability",
-        arguments: extractLocation(lastUser),
-      });
-    } else if (/aceito|fechar|fechar negócio|pode cadastrar|quero esse/.test(lower)) {
+      calls.push({ id: "t1", name: "check_viability", arguments: extractLocation(lastUser) });
+    } else if (/aceito|fechar|pode cadastrar|quero esse|fecha/.test(lower)) {
       calls.push({ id: "t1", name: "create_pre_sale", arguments: {} });
     } else if (/plano|oferta|preço|preco|mega|internet|melhor/.test(lower)) {
       calls.push({ id: "t1", name: "search_offers", arguments: { query: lastUser } });
@@ -113,7 +149,6 @@ export class DevMockLlmProvider implements LlmProvider {
       calls.push({ id: "t1", name: "update_lead_stage", arguments: { status: "QUALIFICANDO" } });
       calls.push({ id: "t2", name: "get_customer", arguments: {} });
     }
-
     return { model: this.name, content: "", toolCalls: calls };
   }
 }
@@ -128,41 +163,35 @@ function extractLocation(text: string) {
 function composeFromTools(userText: string, toolJson: string): string {
   try {
     const data = JSON.parse(toolJson);
-    if (data.blocked) {
-      return "Preciso encaminhar este caso para um atendente humano. Não posso inventar informação comercial que não esteja cadastrada.";
-    }
-    if (data.handoff) {
-      return "Certo, vou transferir você para um atendente humano agora. A IA fica pausada nesta conversa.";
-    }
-    if (data.preSale) {
-      return `Perfeito. Registrei o aceite e enviei a venda pré-fechada para a fila operacional.\n\nResumo: ${data.preSale.aiSummary ?? "oferta aceita"}. Um operador lança o pedido no sistema corporativo e eu te aviso o resultado.`;
-    }
+    if (data.blocked) return "Isso eu preciso confirmar com um atendente. Não posso inventar condição comercial.";
+    if (data.handoff) return "Beleza, vou te passar pra um atendente agora.";
+    if (data.preSale) return "Fechado. Vou encaminhar seu cadastro pra equipe operacional. Assim que tiver retorno, te aviso aqui.";
     if (data.viability) {
       if (data.viability.result === "VIAVEL" && data.viability.reliable) {
-        return `Consultei a base interna autorizada: há indicação de viabilidade em ${data.viability.city ?? "sua cidade"}. Vou buscar as ofertas vigentes aprovadas para essa região.`;
+        return `Em ${data.viability.city ?? "sua cidade"} a consulta autorizada indica cobertura. Quer que eu te mostre as opções vigentes?`;
       }
       if (data.viability.result === "NAO_VIAVEL") {
-        return "A consulta autorizada não confirmou cobertura neste endereço. Não posso afirmar viabilidade. Posso registrar interesse e encaminhar para um humano.";
+        return "Por esse endereço a consulta autorizada não confirma cobertura. Posso registrar seu interesse pra expansão.";
       }
-      return "Ainda não tenho um retorno confiável de viabilidade para esse endereço. Não vou afirmar cobertura. Vou sinalizar para consulta manual do operador.";
+      return "Ainda não tenho um retorno confiável de cobertura. Não vou te afirmar que tem sinal. Posso pedir uma checagem manual.";
     }
     if (data.offers?.length) {
       const o = data.offers[0];
       const price = o.promotionalPriceCents
-        ? `R$ ${(o.promotionalPriceCents / 100).toFixed(2)} (promocional)`
+        ? `R$ ${(o.promotionalPriceCents / 100).toFixed(2).replace(".", ",")}`
         : o.priceCents
-          ? `R$ ${(o.priceCents / 100).toFixed(2)}`
-          : "preço conforme oferta aprovada";
-      return `Encontrei ofertas vigentes e aprovadas. A recomendada é **${o.name}** (${o.speedMbps ?? "—"} Mega) por ${price}. Benefícios cadastrados: ${(o.benefits ?? []).join(", ") || "conforme book"}. Posso comparar com a alternativa ou seguir para o aceite.`;
+          ? `R$ ${(o.priceCents / 100).toFixed(2).replace(".", ",")}`
+          : null;
+      if (!price) return "Tem opção aprovada pra sua região, mas o preço não está cadastrado. Vou passar pra um humano.";
+      return `${o.name}, ${o.speedMbps ?? "—"} Mega, ${price} no valor da oferta vigente. ${((o.benefits as string[]) ?? []).slice(0, 2).join(", ")}. Faz sentido pra você?`;
     }
-    if (data.faq) {
-      return data.faq;
-    }
-    if (data.objectionResponse) {
-      return data.objectionResponse;
-    }
+    if (data.objectionResponse) return data.objectionResponse;
+    if (data.faq) return String(data.faq).slice(0, 400);
   } catch {
     /* fallthrough */
   }
-  return "Para te indicar um plano com segurança, preciso da cidade e do que você precisa (casa, home office, quantidade de pessoas). Só trabalho com ofertas aprovadas no sistema — sem inventar preço.";
+  if (/caro|preço|preco/.test(userText.toLowerCase())) {
+    return "Hoje você paga quanto na internet?";
+  }
+  return "Me fala a cidade e se é mais pra casa, trabalho ou os dois. Aí eu te mostro só o que está aprovado pra você.";
 }

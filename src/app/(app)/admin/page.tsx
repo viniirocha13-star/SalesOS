@@ -11,6 +11,13 @@ export default async function AdminPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Administração</h1>
       <section className="rounded-xl border bg-white p-4">
+        <h2 className="mb-3 font-medium">Módulos</h2>
+        <div className="flex flex-wrap gap-3 text-sm">
+          <a className="underline" href="/admin/integracoes">Integrações</a>
+          <a className="underline" href="/admin/laboratorio">Laboratório IA</a>
+        </div>
+      </section>
+      <section className="rounded-xl border bg-white p-4">
         <h2 className="mb-3 font-medium">Usuários e RBAC</h2>
         <UserForm />
         <table className="mt-4 w-full text-sm">

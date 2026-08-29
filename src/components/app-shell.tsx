@@ -28,9 +28,11 @@ import { can } from "@/lib/rbac";
 import type { Role } from "@prisma/client";
 
 const NAV = [
+  { href: "/home", label: "Agora", icon: Bell, perm: "operation.queue" },
+  { href: "/inbox", label: "Inbox", icon: MessageCircle, perm: "conversations.view" },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, perm: "dashboard.view" },
   { href: "/leads", label: "Leads", icon: Users, perm: "leads.view" },
-  { href: "/conversas", label: "Conversas", icon: MessageCircle, perm: "conversations.view" },
+  { href: "/conversas", label: "Laboratório", icon: Brain, perm: "conversations.simulate" },
   { href: "/vendas", label: "Vendas", icon: ShoppingBag, perm: "sales.view" },
   { href: "/operacao", label: "Operação", icon: Inbox, perm: "operation.queue" },
   { href: "/campanhas", label: "Campanhas", icon: Megaphone, perm: "campaigns.view" },

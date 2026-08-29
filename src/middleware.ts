@@ -11,6 +11,7 @@ export default auth((request) => {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/whatsapp/webhook") ||
     pathname.startsWith("/api/leads/capture") ||
+    pathname.startsWith("/api/health") ||
     pathname.startsWith("/_next")
   ) {
     return NextResponse.next();

@@ -1,3 +1,5 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
 import { PIPELINE_LABEL } from "@/domain/pipeline";
 import type { LeadStatus, OfferStatus, PreSaleStatus } from "@prisma/client";

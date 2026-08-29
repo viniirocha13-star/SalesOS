@@ -8,10 +8,14 @@ datasource db {
 }
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
+  MANAGER
   SUPERVISOR
   OPERADOR
+  OPERATOR
   ANALISTA
+  ANALYST
 }
 
 enum LeadStatus {
@@ -130,18 +134,83 @@ enum HandoffStatus {
 enum DomainEventType {
   LEAD_CREATED
   MESSAGE_RECEIVED
+  MESSAGE_BUFFER_READY
+  AI_RESPONSE_REQUESTED
   VIABILITY_CHECKED
   OFFER_PRESENTED
+  OBJECTION_DETECTED
+  BUYING_INTENT_DETECTED
   CUSTOMER_ACCEPTED
+  COMMERCIAL_ACCEPTED
   PRE_SALE_CREATED
+  PRE_SALE_READY
+  OPERATOR_ASSIGNED
   SALE_REGISTERED
+  SALE_PENDING
+  SALE_REJECTED
   CONTRACT_PENDING
   SALE_INSTALLED
+  HUMAN_HANDOFF_STARTED
+  HUMAN_HANDOFF_ENDED
 }
 
 enum MessageDirection {
   INBOUND
   OUTBOUND
+}
+
+enum MessageActor {
+  CUSTOMER
+  AI
+  HUMAN
+  SYSTEM
+}
+
+enum SalesStage {
+  NEW
+  GREETING
+  DISCOVERY
+  LOCATION_COLLECTION
+  VIABILITY_CHECK
+  NEEDS_ANALYSIS
+  OFFER_SELECTION
+  OFFER_PRESENTATION
+  NEGOTIATION
+  OBJECTION_HANDLING
+  BUYING_INTENT
+  COMMERCIAL_ACCEPTANCE
+  DATA_COLLECTION
+  PRE_SALE_READY
+  WAITING_OPERATOR
+  OPERATOR_PROCESSING
+  OPERATOR_PENDING
+  REGISTERED
+  CONTRACT_PENDING
+  DOCUMENT_PENDING
+  INSTALLATION_PENDING
+  INSTALLED
+  LOST
+  HUMAN_HANDOFF
+}
+
+enum IntentType {
+  BUY
+  QUESTION
+  OBJECTION
+  NEGOTIATION
+  CANCEL
+  HUMAN_REQUEST
+  SEND_DOCUMENT
+  ADDRESS
+  PERSONAL_DATA
+  COMPLAINT
+  OTHER
+}
+
+enum IntegrationStatus {
+  CONNECTED
+  ERROR
+  NOT_CONFIGURED
 }
 
 enum MessageStatus {
@@ -153,8 +222,18 @@ enum MessageStatus {
   FAILED
 }
 
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  users     User[]
+  leads     Lead[]
+  conversations Conversation[]
+}
 model User {
   id           String   @id @default(cuid())
+  tenantId     String?
   name         String
   email        String    @unique
   passwordHash String
@@ -163,15 +242,17 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  assignedLeads     Lead[]           @relation("LeadOwner")
-  assignedPreSales   PreSale[]       @relation("PreSaleOwner")
-  auditLogs          AuditLog[]
-  humanHandoffs      HumanHandoff[]
+  tenant                Tenant?        @relation(fields: [tenantId], references: [id])
+  assignedLeads         Lead[]         @relation("LeadOwner")
+  assignedPreSales      PreSale[]      @relation("PreSaleOwner")
+  auditLogs             AuditLog[]
+  humanHandoffs         HumanHandoff[]
   assignedConversations Conversation[] @relation("ConversationOwner")
 }
 
 model Lead {
   id               String     @id @default(cuid())
+  tenantId         String?
   name             String?
   phone            String
   city             String?
@@ -189,6 +270,8 @@ model Lead {
   utmMedium        String?
   utmCampaign      String?
   utmContent       String?
+  clickId          String?
+  landingPage      String?
   productInterest  String?
   status           LeadStatus @default(NOVO)
   score            Int       @default(0)
@@ -198,6 +281,7 @@ model Lead {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  tenant         Tenant?           @relation(fields: [tenantId], references: [id])
   campaign       Campaign?         @relation(fields: [campaignId], references: [id])
   owner          User?             @relation("LeadOwner", fields: [ownerId], references: [id])
   customer       Customer?        @relation(fields: [customerId], references: [id])
@@ -208,11 +292,14 @@ model Lead {
   preSales       PreSale[]
   consents       Consent[]
   aiExecutions   AIExecution[]
+  facts          CustomerFact[]
+  acceptances    CommercialAcceptance[]
 
   @@index([phone])
   @@index([status])
   @@index([campaignId])
   @@index([city])
+  @@index([tenantId])
 }
 
 model LeadStatusHistory {
@@ -333,41 +420,57 @@ model KnowledgeVersion {
 
 model Conversation {
   id            String             @id @default(cuid())
+  tenantId      String?
   leadId        String
   channel       ConversationChannel @default(SIMULATOR)
   waConversationId String?
   status        ConversationStatus  @default(IA_ATIVA)
+  salesStage    SalesStage          @default(NEW)
+  aiEnabled     Boolean             @default(true)
+  lockOwnerId   String?
+  lockUntil     DateTime?
+  unreadCount   Int                 @default(0)
+  lastInboundAt DateTime?
   ownerId       String?
   lastMessageAt DateTime?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
+  tenant   Tenant?   @relation(fields: [tenantId], references: [id])
   lead     Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
   owner    User?     @relation("ConversationOwner", fields: [ownerId], references: [id])
   messages Message[]
   handoffs HumanHandoff[]
   aiExecutions AIExecution[]
+  memory   ConversationMemory?
+  stageHistory SalesStageHistory[]
 
   @@index([leadId])
+  @@index([tenantId, lastMessageAt])
+  @@index([status, aiEnabled])
 }
 
 model Message {
   id              String            @id @default(cuid())
   conversationId  String
   direction       MessageDirection
+  actor           MessageActor      @default(CUSTOMER)
   body            String            @db.Text
   mediaUrl        String?
   mediaType       String?
   templateName    String?
   waMessageId     String?           @unique
+  providerMessageId String?
+  wamid           String?
   status          MessageStatus     @default(RECEIVED)
   idempotencyKey  String?           @unique
+  buffered        Boolean           @default(false)
   metadata        Json?
   createdAt       DateTime         @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
-  @@index([conversationId])
+  @@index([conversationId, createdAt])
 }
 
 model ViabilityCheck {
@@ -527,6 +630,11 @@ model AIExecution {
   offerId         String?
   knowledgeSource String?
   confidence      Float?
+  inputTokens     Int?
+  outputTokens    Int?
+  cachedTokens    Int?
+  estimatedCostUsd Float?
+  purpose         String?
   result          String?  @db.Text
   createdAt       DateTime @default(now())
 
@@ -549,4 +657,165 @@ model WhatsAppLog {
   direction String
   payload   Json
   createdAt DateTime @default(now())
+}
+
+model ConversationMemory {
+  id                 String   @id @default(cuid())
+  conversationId     String   @unique
+  summary            String?  @db.Text
+  customerFacts      Json?
+  commercialState    Json?
+  objections         Json?
+  offersPresented    Json?
+  acceptedOfferId    String?
+  pendingQuestions   Json?
+  importantEvents    Json?
+  updatedAt          DateTime @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model SalesStageHistory {
+  id             String     @id @default(cuid())
+  conversationId String
+  fromStage      SalesStage?
+  toStage        SalesStage
+  reason         String?
+  actor          String?
+  createdAt      DateTime   @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+model CustomerFact {
+  id        String   @id @default(cuid())
+  leadId    String
+  key       String
+  value     String
+  source    String   @default("conversation")
+  createdAt DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, key])
+}
+
+model CommercialAcceptance {
+  id           String   @id @default(cuid())
+  leadId       String
+  offerId      String
+  messageId    String?
+  offerSnapshot Json?
+  createdAt    DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model WhatsAppInboundEvent {
+  id            String   @id @default(cuid())
+  providerEventId String @unique
+  payload       Json
+  processedAt   DateTime?
+  createdAt     DateTime @default(now())
+}
+
+model Prompt {
+  id        String          @id @default(cuid())
+  slug      String          @unique
+  name      String
+  versions  PromptVersion[]
+}
+
+model PromptVersion {
+  id        String   @id @default(cuid())
+  promptId  String
+  version   Int
+  content   String   @db.Text
+  active    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  prompt Prompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([promptId, version])
+}
+
+model WhatsAppTemplate {
+  id                 String  @id @default(cuid())
+  providerTemplateId String?
+  name               String
+  language           String  @default("pt_BR")
+  category           String?
+  status             String  @default("DRAFT")
+  variables          Json?
+  purpose            String?
+}
+
+model RequiredFieldDefinition {
+  id          String  @id @default(cuid())
+  productType String
+  fieldKey    String
+  label       String
+  required    Boolean @default(true)
+  pattern     String?
+}
+
+model Integration {
+  id     String            @id @default(cuid())
+  slug   String            @unique
+  name   String
+  status IntegrationStatus @default(NOT_CONFIGURED)
+  lastError String?
+  testedAt DateTime?
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String?
+  title     String
+  body      String
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model FollowUp {
+  id             String    @id @default(cuid())
+  conversationId String
+  stage          String
+  delayMinutes   Int
+  attempts       Int       @default(0)
+  maxAttempts    Int       @default(2)
+  templateName   String?
+  dueAt          DateTime
+  sentAt         DateTime?
+  cancelled      Boolean   @default(false)
+}
+
+model Workflow {
+  id    String         @id @default(cuid())
+  name  String
+  steps WorkflowStep[]
+}
+
+model WorkflowStep {
+  id         String  @id @default(cuid())
+  workflowId String
+  name       String
+  type       String
+  order      Int
+  required   Boolean @default(true)
+  template   String?
+  condition  Json?
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+}
+
+model ModelPrice {
+  id           String   @id @default(cuid())
+  model        String   @unique
+  inputPerMTok Float
+  outputPerMTok Float
+  updatedAt    DateTime @updatedAt
 }

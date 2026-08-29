@@ -37,6 +37,10 @@ export function ChatPanel({
     });
     const json = await res.json();
     setLoading(false);
+    if (json.blocked) {
+      setMessages((m) => [...m, { id: crypto.randomUUID(), direction: "OUTBOUND", body: "IA pausada — humano no comando." }]);
+      return;
+    }
     if (json.reply) {
       setMessages((m) => [...m, { id: crypto.randomUUID(), direction: "OUTBOUND", body: json.reply }]);
     }
