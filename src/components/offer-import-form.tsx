@@ -11,32 +11,49 @@ export function OfferImportForm() {
 
   async function upload() {
     if (!file) {
-      setStatus("Selecione um arquivo CSV, XLSX ou PDF.");
+      setStatus("Selecione o book atual em CSV, XLSX ou PDF.");
       return;
     }
-    setStatus("Importando e detectando ofertas...");
+    setStatus("Importando planos do arquivo...");
     const fd = new FormData();
     fd.set("file", file);
     const res = await fetch("/api/offers/import", { method: "POST", body: fd });
     const json = await res.json();
     if (!res.ok) {
-      setStatus(json.error ?? "Falha");
+      setStatus(json.error ?? "Falha ao importar o book.");
       return;
     }
-    setStatus(`${json.offers?.length ?? 0} ofertas detectadas — aguardando aprovação.`);
+    setStatus(
+      `${json.offers?.length ?? 0} planos detectados. Abra cada oferta e aprove — só APROVADA e vigente entra na IA.`,
+    );
     router.refresh();
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border bg-white p-3">
-      <label className="text-sm font-medium" htmlFor="book-file">
-        Arquivo do book
+    <div className="space-y-3">
+      <label className="text-sm font-medium text-slate-800" htmlFor="book-file">
+        Arquivo do book vigente
       </label>
-      <input id="book-file" type="file" accept=".csv,.xlsx,.xls,.pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-      <Button onClick={upload} disabled={!file} className="bg-orange-500 hover:bg-orange-600">
-        {status.startsWith("Importando") ? "Enviando..." : "Enviar book"}
-      </Button>
-      {status && <p role="status" className="text-xs text-zinc-500">{status}</p>}
+      <input
+        id="book-file"
+        type="file"
+        accept=".csv,.xlsx,.xls,.pdf"
+        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+        className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-teal file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
+      />
+      <div className="flex flex-wrap items-center gap-3">
+        <Button onClick={upload} disabled={!file}>
+          {status.startsWith("Importando") ? "Enviando..." : "Enviar book e atualizar planos"}
+        </Button>
+        <a className="text-sm text-teal underline" href="/samples/book-ofertas-exemplo.csv">
+          Baixar CSV de exemplo
+        </a>
+      </div>
+      {status && (
+        <p role="status" className="text-sm text-slate-600">
+          {status}
+        </p>
+      )}
     </div>
   );
 }

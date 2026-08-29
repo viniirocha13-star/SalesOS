@@ -20,10 +20,31 @@ export default async function OfertasPage() {
       <PageHeader
         kicker="Catálogo"
         title="Books e ofertas"
-        description="O arquivo original fica guardado. Só oferta aprovada e vigente entra no motor."
+        description="Aqui você envia o book atual. Depois de aprovar cada plano, a IA só usa o que está vigente — nunca inventa preço."
         titleTestId="heading-books"
-        action={canImport ? <OfferImportForm /> : <p className="text-sm text-ink/50">Somente supervisor/admin importa books.</p>}
       />
+
+      <section className="surface p-5" id="upload-book">
+        <h2 className="text-lg font-semibold">Atualizar a IA com o book vigente</h2>
+        <p className="mt-1 max-w-2xl text-sm text-slate-500">
+          Envie o CSV, XLSX ou PDF do book comercial atual. Os planos entram como rascunho. Supervisor ou admin
+          abre a oferta e clica em Aprovar. Só então o Offer Engine e o WhatsApp passam a oferecer esses valores.
+        </p>
+        <div className="mt-4">
+          {canImport ? (
+            <OfferImportForm />
+          ) : (
+            <p className="text-sm text-slate-500">
+              Seu perfil só consulta o catálogo. Peça a um supervisor ou admin para enviar o book em{" "}
+              <a className="text-teal underline" href="/ofertas#upload-book">
+                Ofertas → Atualizar book vigente
+              </a>
+              .
+            </p>
+          )}
+        </div>
+      </section>
+
       <section className="surface overflow-x-auto">
         <h2 className="font-heading border-b border-[#efe6d9] px-4 py-3 text-xl">Books importados</h2>
         <table className="data-table">

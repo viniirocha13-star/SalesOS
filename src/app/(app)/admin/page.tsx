@@ -22,6 +22,7 @@ export default async function AdminPage() {
           <a className="underline" href="/admin/diagnostico">Diagnóstico</a>
           <a className="underline" href="/admin/integracoes">Integrações</a>
           <a className="underline" href="/admin/laboratorio">Laboratório IA</a>
+          <a className="underline" href="/ofertas#upload-book">Upload do book vigente</a>
         </div>
       </section>
       <section className="surface p-5">

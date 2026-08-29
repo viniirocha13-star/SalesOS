@@ -58,6 +58,7 @@ Login seed: `ursula.b@example.com` / `Brisa@2026`
 
 Outros usuários seed (mesma senha): `rachel.c@example.org` (supervisor), `zoe.m@example.net` e `tina.r@example.net` (operadores), `samuel.w@example.com` (analista).
 
+- Books e upload do book vigente `/ofertas#upload-book` (CSV/XLSX/PDF → aprovar oferta)
 - Inbox `/inbox`
 - Agora (operador) `/home`
 - Laboratório `/conversas`
