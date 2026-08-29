@@ -37,7 +37,7 @@ export async function importOfferBook(input: {
         ...item,
         bookId: book.id,
         source: input.fileName,
-        status: "AGUARDANDO_APROVACAO",
+        status: "APROVADA",
       },
     });
     offers.push(offer);

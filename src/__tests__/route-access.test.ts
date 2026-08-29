@@ -14,6 +14,7 @@ describe("RBAC por URL", () => {
     expect(canAccessPath("OPERADOR", "/operacao")).toBe(true);
     expect(canAccessPath("OPERADOR", "/inbox")).toBe(true);
     expect(canAccessPath("OPERADOR", "/pos-venda")).toBe(true);
+    expect(canAccessPath("OPERADOR", "/ofertas")).toBe(true);
     expect(canAccessPath("OPERADOR", "/admin")).toBe(false);
   });
 

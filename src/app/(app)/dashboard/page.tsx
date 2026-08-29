@@ -74,7 +74,7 @@ export default async function DashboardPage({
       <div className="surface mt-6 p-5">
         <h2 className="text-lg font-semibold">Book vigente da IA</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Envie um book novo para somar planos. Excluir um book ou um plano é opcional e independente.
+          O book é o catálogo de produtos da IA. Envie para somar; exclua quando aquele book não for mais trabalhar.
         </p>
         <Link href="/ofertas#upload-book" className="mt-3 inline-block text-sm font-medium text-teal underline">
           Ir para upload do book

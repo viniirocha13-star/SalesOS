@@ -12,7 +12,8 @@ import type { Role } from "@prisma/client";
 
 export default async function OfertasPage() {
   const session = await auth();
-  const canImport = session?.user ? can(session.user.role as Role, "offers.import") : false;
+  const role = session?.user?.role as Role | undefined;
+  const canManage = role ? can(role, "offers.import") : false;
   const [offers, books] = await Promise.all([
     prisma.offer.findMany({ include: { book: true }, orderBy: { createdAt: "desc" } }),
     prisma.offerBook.findMany({ include: { _count: { select: { offers: true } } }, orderBy: { createdAt: "desc" } }),
@@ -22,77 +23,56 @@ export default async function OfertasPage() {
       <PageHeader
         kicker="Catálogo"
         title="Books e ofertas"
-        description="Novos books somam planos aos que já estão aprovados. Excluir um book ou um plano é independente — não precisa ter um arquivo novo no lugar."
+        description="O book é o conjunto de produtos que a IA pode vender. Não é aprovação do cliente."
         titleTestId="heading-books"
       />
 
       <section className="surface p-5" id="upload-book">
-        <h2 className="text-lg font-semibold">Atualizar a IA com o book vigente</h2>
+        <h2 className="text-lg font-semibold">Enviar book para a IA</h2>
         <p className="mt-1 max-w-2xl text-sm text-slate-500">
-          Envie CSV, XLSX ou PDF. Os planos novos entram como rascunho e, depois de aprovados, <strong>juntam-se</strong> aos
-          vigentes. Não é obrigatório excluir o book antigo. Use Excluir só quando quiser tirar aquele arquivo (e os
-          planos dele) da IA.
+          O arquivo vira o catálogo de trabalho. Os produtos entram na IA na hora. Um book novo soma aos
+          anteriores. Excluir um book é independente — não precisa ter outro no lugar.
         </p>
         <div className="mt-4">
-          {canImport ? (
+          {canManage ? (
             <OfferImportForm />
           ) : (
-            <p className="text-sm text-slate-500">
-              Seu perfil só consulta o catálogo. Peça a um supervisor ou admin para enviar o book em{" "}
-              <Link className="text-teal underline" href="/ofertas#upload-book">
-                Ofertas → Atualizar book vigente
-              </Link>
-              .
-            </p>
+            <p className="text-sm text-slate-500">Somente operação/gestão envia ou exclui books.</p>
           )}
         </div>
       </section>
 
-      <section className="surface overflow-x-auto">
-        <h2 className="font-heading border-b border-[#efe6d9] px-4 py-3 text-xl">Books importados</h2>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th className="p-3">Arquivo</th>
-              <th className="p-3">Ofertas</th>
-              <th className="p-3">Quando</th>
-              {canImport && <th className="p-3">Ação</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {books.map((b) => (
-              <tr key={b.id} className="border-t">
-                <td className="p-3">{b.originalName}</td>
-                <td className="p-3">{b._count.offers}</td>
-                <td className="p-3">{formatDateTime(b.createdAt)}</td>
-                {canImport && (
-                  <td className="p-3">
-                    <BookRetireButton bookId={b.id} name={b.originalName} />
-                  </td>
-                )}
-              </tr>
-            ))}
-            {!books.length && (
-              <tr>
-                <td className="p-6 text-zinc-500" colSpan={canImport ? 4 : 3}>
-                  Nenhum book ainda. Envie um CSV de exemplo em /samples/book-ofertas-exemplo.csv
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Books na IA</h2>
+        {!books.length && (
+          <p className="surface p-5 text-sm text-slate-500">Nenhum book. Envie um arquivo acima para a IA vender esses produtos.</p>
+        )}
+        <div className="grid gap-3 md:grid-cols-2">
+          {books.map((b) => (
+            <article key={b.id} className="surface flex items-start justify-between gap-4 p-5">
+              <div>
+                <p className="font-medium text-slate-900">{b.originalName}</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {b._count.offers} produto{b._count.offers === 1 ? "" : "s"} · {formatDateTime(b.createdAt)}
+                </p>
+              </div>
+              {canManage && <BookRetireButton bookId={b.id} name={b.originalName} />}
+            </article>
+          ))}
+        </div>
       </section>
+
       <section className="surface overflow-x-auto">
-        <h2 className="font-heading border-b border-[#efe6d9] px-4 py-3 text-xl">Ofertas</h2>
+        <h2 className="font-heading border-b border-[#efe6d9] px-4 py-3 text-xl">Produtos que a IA pode vender</h2>
         <table className="data-table">
           <thead>
             <tr>
-              <th className="p-3">Oferta</th>
+              <th className="p-3">Produto</th>
               <th className="p-3">Cidade</th>
               <th className="p-3">Velocidade</th>
               <th className="p-3">Preço</th>
-              <th className="p-3">Status</th>
-              {canImport && <th className="p-3">Ação</th>}
+              <th className="p-3">Na IA</th>
+              {canManage && <th className="p-3">Ação</th>}
             </tr>
           </thead>
           <tbody>
@@ -102,6 +82,7 @@ export default async function OfertasPage() {
                   <Link href={`/ofertas/${o.id}`} className="font-medium hover:underline">
                     {o.name}
                   </Link>
+                  {o.book && <p className="text-xs text-slate-400">{o.book.originalName}</p>}
                 </td>
                 <td className="p-3">{o.city ?? "—"}</td>
                 <td className="p-3">{o.speedMbps ? `${o.speedMbps} Mega` : "—"}</td>
@@ -109,9 +90,9 @@ export default async function OfertasPage() {
                 <td className="p-3">
                   <OfferBadge status={o.status} />
                 </td>
-                {canImport && (
+                {canManage && (
                   <td className="p-3">
-                    {o.status !== "EXPIRADA" && o.status !== "REJEITADA" ? (
+                    {o.status === "APROVADA" ? (
                       <OfferRetireButton offerId={o.id} name={o.name} />
                     ) : (
                       <span className="text-xs text-slate-400">Fora da IA</span>
@@ -122,8 +103,8 @@ export default async function OfertasPage() {
             ))}
             {!offers.length && (
               <tr>
-                <td className="p-6 text-ink/50" colSpan={canImport ? 6 : 5}>
-                  Nenhuma oferta extraída. Importe um book para revisar.
+                <td className="p-6 text-ink/50" colSpan={canManage ? 6 : 5}>
+                  Nenhum produto no catálogo. Envie um book.
                 </td>
               </tr>
             )}

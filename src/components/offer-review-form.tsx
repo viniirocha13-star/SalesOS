@@ -24,7 +24,7 @@ export function OfferReviewForm({ offer }: { offer: Offer }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  async function save(status: "APROVADA" | "REJEITADA" | "AGUARDANDO_APROVACAO") {
+  async function save(status: "APROVADA" | "REJEITADA" | "AGUARDANDO_APROVACAO" | "EXPIRADA") {
     setBusy(status);
     setError("");
     const res = await fetch(`/api/offers/${offer.id}`, {
@@ -72,8 +72,8 @@ export function OfferReviewForm({ offer }: { offer: Offer }) {
         <Button disabled={!!busy} variant="outline" onClick={() => save("AGUARDANDO_APROVACAO")}>
           {busy === "AGUARDANDO_APROVACAO" ? "Salvando..." : "Salvar edição"}
         </Button>
-        <Button disabled={!!busy} variant="destructive" onClick={() => save("REJEITADA")}>
-          {busy === "REJEITADA" ? "Rejeitando..." : "Rejeitar"}
+        <Button disabled={!!busy} variant="destructive" onClick={() => save("EXPIRADA")}>
+          {busy === "EXPIRADA" ? "Retirando..." : "Retirar da IA"}
         </Button>
       {error && (
         <p role="alert" className="text-sm text-red-600">

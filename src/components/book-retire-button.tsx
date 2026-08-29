@@ -11,7 +11,7 @@ export function BookRetireButton({ bookId, name }: { bookId: string; name: strin
 
   async function retire() {
     const ok = window.confirm(
-      `Excluir o book “${name}”? Só os planos deste arquivo saem da IA. Os demais books e planos aprovados continuam. Vendas já lançadas não são apagadas.`,
+      `Excluir o book “${name}”? A IA para de vender os produtos deste arquivo. Os outros books continuam. Vendas já feitas não são apagadas.`,
     );
     if (!ok) return;
     setBusy(true);
@@ -26,11 +26,11 @@ export function BookRetireButton({ bookId, name }: { bookId: string; name: strin
   }
 
   return (
-    <div>
-      <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => void retire()}>
-        {busy ? "Excluindo..." : "Excluir este book"}
+    <div className="flex flex-col items-start gap-1">
+      <Button type="button" variant="destructive" size="sm" disabled={busy} onClick={() => void retire()}>
+        {busy ? "Excluindo..." : "Excluir book"}
       </Button>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );
 }

@@ -24,7 +24,7 @@ export function OfferImportForm() {
       return;
     }
     setStatus(
-      `${json.offers?.length ?? 0} planos novos detectados. Eles somam aos já aprovados. Aprove cada um para a IA usar.`,
+      `${json.offers?.length ?? 0} produtos já estão na IA, somados aos books anteriores.`,
     );
     router.refresh();
   }
@@ -43,7 +43,7 @@ export function OfferImportForm() {
       />
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={upload} disabled={!file}>
-          {status.startsWith("Importando") ? "Enviando..." : "Enviar book e atualizar planos"}
+          {status.startsWith("Importando") ? "Enviando..." : "Enviar book para a IA"}
         </Button>
         <a className="text-sm text-teal underline" href="/samples/book-ofertas-exemplo.csv">
           Baixar CSV de exemplo
