@@ -8,7 +8,6 @@ export async function POST() {
     await requirePermission("conversations.simulate");
     const phone = `8599${Math.floor(10000000 + Math.random() * 89999999)}`;
     const lead = await createLead({
-      name: "Lead simulador",
       phone,
       origin: "OUTROS",
       source: "simulator",

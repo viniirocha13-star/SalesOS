@@ -511,7 +511,12 @@ export async function runTool(
         });
       }
       const { enqueueLaunchIfCustomerReady } = await import("@/domain/launch-ready");
-      const queued = await enqueueLaunchIfCustomerReady(ctx.leadId);
+      let queued = { preSaleId: null as string | null, created: false };
+      try {
+        queued = await enqueueLaunchIfCustomerReady(ctx.leadId);
+      } catch {
+        queued = { preSaleId: null, created: false };
+      }
       return { ok: true, field, ready_for_operator_launch: queued.created || Boolean(queued.preSaleId) };
     }
     case "get_business_rule": {

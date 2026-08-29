@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { LabJourney } from "@/components/lab-journey";
 
 type Msg = { id: string; direction: "INBOUND" | "OUTBOUND"; body: string };
 
@@ -12,12 +14,14 @@ export function ChatPanel({
   initialMessages,
   providerHint,
   handoff,
+  queued,
   onTurn,
 }: {
   conversationId: string;
   initialMessages: Msg[];
   providerHint: string;
   handoff: boolean;
+  queued?: boolean;
   onTurn?: () => void;
 }) {
   const [messages, setMessages] = useState(initialMessages);
@@ -25,9 +29,9 @@ export function ChatPanel({
   const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState(providerHint);
 
-  async function send() {
-    if (!text.trim()) return;
-    const body = text;
+  async function send(next = text) {
+    if (!next.trim()) return;
+    const body = next;
     setText("");
     setMessages((m) => [...m, { id: crypto.randomUUID(), direction: "INBOUND", body }]);
     setLoading(true);
@@ -83,6 +87,16 @@ export function ChatPanel({
           {loading && <div className="text-xs text-ink/40">Consultando ofertas e regras…</div>}
         </div>
       </ScrollArea>
+      {queued && (
+        <div className="border-t border-teal/30 bg-teal/5 px-5 py-3 text-sm">
+          <p className="font-medium text-teal">Cliente enviou os dados.</p>
+          <p className="mt-0.5 text-ink/60">O pedido entrou na fila. O operador lança no sistema.</p>
+          <Link href="/home" className="mt-2 inline-block text-sm font-medium text-teal" data-testid="lab-goto-tasks">
+            Abrir Tarefas →
+          </Link>
+        </div>
+      )}
+      <LabJourney disabled={loading || handoff} onPick={(line) => void send(line)} />
       <div className="flex gap-2 border-t border-[#efe6d9] p-4">
         <Input
           value={text}
@@ -93,7 +107,7 @@ export function ChatPanel({
           disabled={handoff}
           className="h-11 rounded-full bg-white"
         />
-        <Button onClick={send} disabled={loading || handoff} className="h-11 rounded-full px-5">
+        <Button onClick={() => void send()} disabled={loading || handoff} className="h-11 rounded-full px-5">
           Enviar
         </Button>
       </div>

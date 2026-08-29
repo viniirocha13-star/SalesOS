@@ -149,6 +149,35 @@ describe("Variação — mesma objeção, respostas diferentes", () => {
   });
 });
 
+describe("Aceite → coleta até o cliente enviar os dados", () => {
+  it("depois do aceite o mock grava campo e pede o próximo", async () => {
+    const llm = new DevMockLlmProvider();
+    const collectingCtx = {
+      role: "system" as const,
+      content: `Contexto: {"SalesStage":"COMMERCIAL_ACCEPTANCE","CommercialAcceptance":{"id":"a1"}}`,
+    };
+    const first = await llm.complete({
+      messages: [collectingCtx, { role: "user", content: "Maria Helena Costa" }],
+      tools: [],
+    });
+    expect(first.toolCalls.map((c) => c.name)).toEqual(["save_customer_field", "get_required_customer_fields"]);
+    expect(first.toolCalls[0].arguments).toEqual({ field: "FULL_NAME", value: "Maria Helena Costa" });
+    const cpf = await llm.complete({
+      messages: [collectingCtx, { role: "user", content: "529.982.247-25" }],
+      tools: [],
+    });
+    expect(cpf.toolCalls[0].arguments).toMatchObject({ field: "CPF" });
+    const done = await llm.complete({
+      messages: [
+        { role: "user", content: "61600-000" },
+        { role: "tool", name: "get_required_customer_fields", content: JSON.stringify({ missing: [], remaining: 0 }) },
+      ],
+      tools: [],
+    });
+    expect(done.content).toMatch(/fila|operador/i);
+  });
+});
+
 describe("Aceite → deixa de vender", () => {
   it("pode fazer vira EXPLICIT_ACCEPTANCE e mock inicia cadastro", async () => {
     const s = classifyIntentSignals("Tá bom, pode fazer.");

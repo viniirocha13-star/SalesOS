@@ -61,7 +61,7 @@ Outros usuários seed (mesma senha): `rachel.c@example.org` (supervisor), `zoe.m
 - Books e upload do book vigente `/ofertas#upload-book` (CSV/XLSX/PDF → aprovar oferta)
 - Inbox `/inbox`
 - Agora (operador) `/home`
-- Laboratório `/conversas`
+- Laboratório `/conversas` — roteiro de teste até o cliente enviar nome, CPF, endereço e CEP; o card aparece em Tarefas (`/home`)
 - Integrações `/admin/integracoes`
 - Diagnóstico `/admin/diagnostico`
 - Pós-venda `/pos-venda`

@@ -68,6 +68,22 @@ test("Laboratório: objeção de preço sem desconto inventado", async ({ page }
   await expect(page.getByText("Laboratório IA")).toBeVisible();
 });
 
+test("Laboratório: venda até o cliente enviar os dados", async ({ page }) => {
+  await login(page);
+  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("link", { name: "Laboratório" }).click();
+  await page.getByTestId("new-simulator").click();
+  await expect(page).toHaveURL(/\/conversas\/.+/);
+  await expect(page.getByText("Roteiro de teste")).toBeVisible({ timeout: 20_000 });
+  for (const step of ["ask", "accept", "name", "cpf", "address", "cep"] as const) {
+    await page.getByTestId(`lab-step-${step}`).click();
+    await expect(page.getByText("Consultando ofertas e regras…")).toHaveCount(0, { timeout: 20_000 });
+  }
+  await expect(page.getByText(/fila|dados cadastrais|nome completo|operador/i).first()).toBeVisible({
+    timeout: 20_000,
+  });
+});
+
 test("Laboratório abre conversa", async ({ page }) => {
   await login(page);
   await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });

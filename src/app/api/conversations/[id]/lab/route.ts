@@ -16,6 +16,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       orderBy: { createdAt: "desc" },
     });
     const ctxData = await buildCommercialContext(id, last?.body ?? "");
+    const { getLaunchSnapshot } = await import("@/domain/launch-ready");
+    const launch = await getLaunchSnapshot(ctxData.conv.leadId);
     return NextResponse.json({
       model: decision?.model,
       salesStage: ctxData.payload.SalesStage,
@@ -35,6 +37,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       escalationReason: decision?.escalationReason,
       latencyMs: decision?.latencyMs,
       tokens: { in: decision?.inputTokens, out: decision?.outputTokens },
+      launch,
     });
   } catch (error) {
     return errorResponse(error);

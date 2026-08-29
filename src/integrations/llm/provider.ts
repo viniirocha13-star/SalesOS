@@ -139,6 +139,8 @@ export class DevMockLlmProvider implements LlmProvider {
       return { model: this.name, toolCalls: [], content: composeFromTools(lastUser, lastTool?.content ?? "") };
     }
 
+    const collecting = isCollectingPhase(input.messages);
+    const cadastro = extractCadastroField(lastUser, collecting);
     const calls: LlmToolCall[] = [];
     if (/humano|atendente|pessoa|reclam/.test(lower)) {
       calls.push({ id: "t1", name: "request_human_handoff", arguments: { reason: "CLIENTE_SOLICITOU" } });
@@ -148,6 +150,11 @@ export class DevMockLlmProvider implements LlmProvider {
       calls.push({ id: "t3", name: "register_buying_intent", arguments: { notes: "high_intent_conditional" } });
     } else if (/pode fazer|pode cadastrar|aceito|pode ser essa|tá bom|ta bom/.test(lower)) {
       calls.push({ id: "t1", name: "register_commercial_acceptance", arguments: {} });
+    } else if (cadastro) {
+      calls.push({ id: "t1", name: "save_customer_field", arguments: cadastro });
+      calls.push({ id: "t2", name: "get_required_customer_fields", arguments: {} });
+    } else if (collecting) {
+      calls.push({ id: "t1", name: "get_required_customer_fields", arguments: {} });
     } else if (/não quero|nao quero|caro|depois|pensar|concorrente|puxado|a outra/.test(lower)) {
       calls.push({ id: "t1", name: "register_objection", arguments: { text: lastUser } });
       calls.push({ id: "t2", name: "get_objection_context", arguments: { objection_type: "PRECO" } });
@@ -163,6 +170,35 @@ export class DevMockLlmProvider implements LlmProvider {
     }
     return { model: this.name, content: "", toolCalls: calls };
   }
+}
+
+function isCollectingPhase(messages: LlmMessage[]) {
+  const blob = messages
+    .filter((m) => m.role === "system")
+    .map((m) => m.content)
+    .join("\n");
+  return /COMMERCIAL_ACCEPTANCE|DATA_COLLECTION|PRE_SALE_READY/.test(blob) || /"CommercialAcceptance":\s*\{/.test(blob);
+}
+
+function extractCadastroField(text: string, collecting: boolean): { field: string; value: string } | null {
+  const digits = text.replace(/\D/g, "");
+  if (/\d{3}\.?\d{3}\.?\d{3}-?\d{2}/.test(text) && digits.length === 11) {
+    return { field: "CPF", value: text.trim() };
+  }
+  if (collecting && /\b\d{5}-?\d{3}\b/.test(text) && digits.length <= 8) {
+    return { field: "CEP", value: text.match(/\b\d{5}-?\d{3}\b/)?.[0] ?? text.trim() };
+  }
+  if (collecting && /rua |avenida |av\.|travessa |alameda |bairro /i.test(text)) {
+    return { field: "ADDRESS", value: text.trim() };
+  }
+  if (
+    collecting &&
+    /^[A-Za-zÀ-ÿ]+(?:\s+[A-Za-zÀ-ÿ]+){1,6}$/.test(text.trim()) &&
+    !/internet|plano|oferta|mega|caro|aceito/i.test(text)
+  ) {
+    return { field: "FULL_NAME", value: text.trim() };
+  }
+  return null;
 }
 
 function extractLocation(text: string) {
@@ -196,6 +232,26 @@ function composeFromTools(userText: string, toolJson: string): string {
           : null;
       if (!price) return "Tem opção aprovada pra sua região, mas o preço não está cadastrado. Vou passar pra um humano.";
       return `${o.name}, ${o.speedMbps ?? "—"} Mega, ${price} no valor da oferta vigente. ${((o.benefits as string[]) ?? []).slice(0, 2).join(", ")}. Faz sentido pra você?`;
+    }
+    if (data.error === "cpf_invalido") {
+      return "Esse CPF não passou na validação. Pode conferir os dígitos?";
+    }
+    if (Array.isArray(data.missing)) {
+      if (!data.remaining) {
+        return "Recebi os dados. O pedido foi para a fila. O operador lança no sistema — eu não disparo o cadastro corporativo.";
+      }
+      const labels: Record<string, string> = {
+        FULL_NAME: "o nome completo",
+        CPF: "o CPF",
+        ADDRESS: "o endereço",
+        CITY: "a cidade",
+        CEP: "o CEP",
+      };
+      const next = String(data.missing[0] ?? "");
+      return `Pode me passar ${labels[next] ?? next}? Só o que o sistema ainda pediu.`;
+    }
+    if (data.ready_for_operator_launch) {
+      return "Pronto. Seus dados chegaram. A equipe operacional lança no sistema.";
     }
     if (data.accepted) {
       return "Fechado no plano que já te mostrei. Agora preciso só dos dados cadastrais que o sistema pediu — começo pelo nome completo.";

@@ -14,7 +14,7 @@ export default async function ConversasPage() {
       <PageHeader
         kicker="Laboratório"
         title="Conversas"
-        description="O modelo vende. O backend limita os fatos. Sem roteiro de frases."
+        description="Teste a venda até o aceite e o envio dos dados. Sem OpenAI, o mock de desenvolvimento usa as mesmas tools."
         action={<StartSimulatorButton />}
       />
       <div className="grid gap-3 sm:grid-cols-2">

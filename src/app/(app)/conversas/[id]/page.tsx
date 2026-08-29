@@ -14,6 +14,7 @@ type Conv = {
   status: string;
   lead: { name: string | null; phone: string; city: string | null; origin: string; status: LeadStatus };
   messages: { id: string; direction: "INBOUND" | "OUTBOUND"; body: string }[];
+  launch?: { phase?: string };
 };
 
 export default function ConversaPage() {
@@ -32,6 +33,7 @@ export default function ConversaPage() {
             status: json.status,
             lead: json.lead,
             messages: json.messages ?? [],
+            launch: json.launch,
           });
         }
       });
@@ -47,6 +49,7 @@ export default function ConversaPage() {
           initialMessages={conv.messages}
           providerHint={process.env.NEXT_PUBLIC_LLM_HINT ?? "runtime"}
           handoff={conv.status === "HANDOFF_HUMANO"}
+          queued={conv.launch?.phase === "queued"}
           onTurn={() => setTick((n) => n + 1)}
         />
       </div>
