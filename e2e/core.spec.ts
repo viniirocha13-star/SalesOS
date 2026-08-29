@@ -87,7 +87,7 @@ test("Inbox → assumir → composer humano → devolver para IA", async ({ page
   await expect(page.getByTestId("human-composer")).toBeEnabled({ timeout: 10_000 });
   await page.getByTestId("human-composer").fill("Confirmando cobertura com você.");
   await page.getByTestId("send-human").click();
-  await expect(page.getByText("Confirmando cobertura com você.")).toBeVisible();
+  await expect(page.getByText("Confirmando cobertura com você.").first()).toBeVisible();
   await page.getByTestId("return-to-ai").click();
   await expect(page.getByText("IA respondendo", { exact: true })).toBeVisible({ timeout: 10_000 });
 });
