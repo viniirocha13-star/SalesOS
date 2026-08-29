@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Input } from "@/components/ui/input";
@@ -11,9 +11,14 @@ export function LoginForm() {
   const params = useSearchParams();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
   const destRaw = params.get("from") || params.get("callbackUrl") || "/dashboard";
   const dest =
     destRaw.startsWith("/") && !destRaw.startsWith("//") && destRaw !== "/login" ? destRaw : "/dashboard";
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
 
   return (
     <Card className="w-full max-w-md">
@@ -25,8 +30,12 @@ export function LoginForm() {
       </CardHeader>
       <CardContent>
         <form
+          method="post"
+          action="/login"
+          data-testid={ready ? "login-ready" : "login-pending"}
           onSubmit={async (event) => {
             event.preventDefault();
+            if (!ready) return;
             setLoading(true);
             setError("");
             const form = new FormData(event.currentTarget);
@@ -74,7 +83,7 @@ export function LoginForm() {
           )}
           <button
             type="submit"
-            disabled={loading}
+            disabled={!ready || loading}
             className="h-9 w-full rounded-lg bg-orange-500 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-60"
           >
             {loading ? "Entrando..." : "Entrar"}

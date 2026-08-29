@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 
 async function login(page: import("@playwright/test").Page, email = "ursula.b@example.com", password = "Brisa@2026") {
   await page.goto("/login");
+  await expect(page.getByTestId("login-ready")).toBeVisible();
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(password);
   await page.getByRole("button", { name: "Entrar" }).click();
