@@ -59,6 +59,8 @@ function enqueueMemory(conversationId: string, delayMs: number) {
 }
 
 export function startInboundWorker() {
+  const g = globalThis as unknown as { __brisaWorker?: Worker };
+  if (g.__brisaWorker) return g.__brisaWorker;
   try {
     const worker = new Worker(
       "wa-inbound",
@@ -71,6 +73,7 @@ export function startInboundWorker() {
     worker.on("failed", (job, err) => logError("worker.failed", { id: job?.id, message: err.message }));
     worker.on("completed", (job) => logInfo("worker.completed", { id: job.id }));
     logInfo("worker.started", { queue: "wa-inbound" });
+    g.__brisaWorker = worker;
     return worker;
   } catch (error) {
     logError("worker.start_failed", { message: String(error) });
