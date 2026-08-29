@@ -6,6 +6,7 @@ import { formatDateTime } from "@/lib/format";
 import { PIPELINE_LABEL } from "@/domain/pipeline";
 import Link from "next/link";
 import { maskPhone } from "@/lib/pii";
+import { LeadEditor } from "@/components/lead-editor";
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -27,7 +28,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">{lead.name ?? "Lead sem nome"}</h1>
+        <h1 className="text-2xl font-semibold" data-testid="heading-lead">
+          {lead.name ?? "Lead sem nome"}
+        </h1>
         <p className="text-sm text-zinc-500">
           {lead.phone} · {lead.city ?? "cidade não informada"} · origem {lead.origin}
         </p>
@@ -51,6 +54,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <Field label="CEP" value={lead.zipCode} />
           </CardContent>
         </Card>
+        <LeadEditor lead={lead} />
         <Card>
           <CardHeader>
             <CardTitle>Conversas</CardTitle>
@@ -70,7 +74,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           <CardTitle>Histórico de status</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          {lead.statusHistory.map((h) => (
+            {lead.statusHistory.map((h) => (
             <div key={h.id} className="flex justify-between border-b py-1">
               <span>
                 {h.fromStatus ? PIPELINE_LABEL[h.fromStatus] : "—"} → {PIPELINE_LABEL[h.toStatus]}
@@ -78,6 +82,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               <span className="text-zinc-500">{formatDateTime(h.createdAt)}</span>
             </div>
           ))}
+          {!lead.statusHistory.length && (
+            <p className="text-zinc-500">Ainda não há mudanças de estágio neste lead.</p>
+          )}
         </CardContent>
       </Card>
       <p className="text-xs text-zinc-400">Telefone mascarado em logs: {maskPhone(lead.phone)}</p>

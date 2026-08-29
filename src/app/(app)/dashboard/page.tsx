@@ -6,7 +6,12 @@ import { LeadBadge } from "@/components/status-badge";
 import Link from "next/link";
 import type { LeadStatus } from "@prisma/client";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ forbidden?: string }>;
+}) {
+  const params = await searchParams;
   const [leads, qualified, preSales, sales, installed, spendAgg, funnel, recent] = await Promise.all([
     prisma.lead.count(),
     prisma.lead.count({
@@ -48,8 +53,15 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Dashboard comercial</h1>
+        <h1 className="text-2xl font-semibold" data-testid="heading-dashboard">
+          Dashboard comercial
+        </h1>
         <p className="text-sm text-zinc-500">Funil completo: campanha → lead → pré-venda → venda → instalação.</p>
+        {params.forbidden && (
+          <p className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Você não tem permissão para a tela solicitada.
+          </p>
+        )}
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
         {kpis.map((k) => (
@@ -79,6 +91,7 @@ export default async function DashboardPage() {
           <CardTitle>Leads recentes</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
+          {!recent.length && <p className="text-sm text-zinc-500">Ainda não há leads neste período.</p>}
           {recent.map((lead) => (
             <Link key={lead.id} href={`/leads/${lead.id}`} className="flex items-center justify-between rounded-md border px-3 py-2 hover:bg-zinc-50">
               <div>

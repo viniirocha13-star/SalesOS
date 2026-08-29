@@ -18,10 +18,10 @@ import {
   Search,
   Bell,
   LogOut,
+  Menu,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { logout } from "@/app/login/logout-action";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { can } from "@/lib/rbac";
@@ -55,7 +55,9 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [q, setQ] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [results, setResults] = useState<{ leads: { id: string; name: string | null; phone: string }[] } | null>(null);
+  const items = NAV.filter((item) => can(user.role, item.perm));
 
   useEffect(() => {
     if (q.length < 2) {
@@ -76,8 +78,8 @@ export function AppShell({
           <div className="text-xs uppercase tracking-[0.2em] text-emerald-200">Brisanet</div>
           <div className="text-lg font-semibold">Brisa Sales AI</div>
         </div>
-        <nav className="flex-1 space-y-0.5 px-3">
-          {NAV.filter((item) => can(user.role, item.perm)).map((item) => {
+        <nav className="flex-1 space-y-0.5 px-3" aria-label="Principal">
+          {items.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
             return (
@@ -104,13 +106,38 @@ export function AppShell({
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b bg-white px-4 py-3">
+        <header className="relative flex items-center gap-3 border-b bg-white px-4 py-3">
+          <button
+            type="button"
+            className="inline-flex size-9 items-center justify-center rounded-lg border md:hidden"
+            aria-label="Abrir menu"
+            onClick={() => setMenuOpen((v) => !v)}
+          >
+            <Menu className="size-4" />
+          </button>
+          {menuOpen && (
+            <div className="absolute top-14 left-0 z-30 w-64 rounded-r-xl bg-[#0f3d38] p-3 text-white shadow-lg md:hidden">
+              <nav aria-label="Menu móvel" className="space-y-1">
+                {items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="block rounded px-3 py-2 text-sm hover:bg-white/10"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+          )}
           <div className="relative max-w-xl flex-1">
             <Search className="absolute top-2.5 left-2.5 size-4 text-zinc-400" />
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Busca global: telefone, nome, oferta..."
+              aria-label="Busca global"
               className="pl-8"
             />
             {results && (
@@ -127,10 +154,12 @@ export function AppShell({
           <Link href="/operacao" title="Pendências" className="inline-flex size-8 items-center justify-center rounded-lg hover:bg-zinc-100">
               <Bell className="size-4" />
             </Link>
-          <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: "/login" })}>
-            <LogOut className="size-4" />
-            Sair
-          </Button>
+          <form action={logout}>
+            <button type="submit" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm hover:bg-zinc-100">
+              <LogOut className="size-4" />
+              Sair
+            </button>
+          </form>
         </header>
         <main className="flex-1 p-4 md:p-6">{children}</main>
       </div>

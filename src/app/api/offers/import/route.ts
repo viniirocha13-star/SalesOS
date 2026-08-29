@@ -9,6 +9,10 @@ export async function POST(request: Request) {
     const form = await request.formData();
     const file = form.get("file");
     if (!(file instanceof File)) return NextResponse.json({ error: "Arquivo obrigatório" }, { status: 400 });
+    if (file.size === 0) return NextResponse.json({ error: "Arquivo vazio" }, { status: 400 });
+    if (!/\.(csv|xlsx|xls|pdf)$/i.test(file.name)) {
+      return NextResponse.json({ error: "Formato não suportado. Use CSV, XLSX ou PDF." }, { status: 400 });
+    }
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await importOfferBook({
       fileName: file.name,

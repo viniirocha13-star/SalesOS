@@ -12,13 +12,22 @@ export function LaunchForm({ preSaleId }: { preSaleId: string }) {
   const [quoteNumber, setQuote] = useState("");
   const [orderNumber, setOrder] = useState("");
   const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   async function submit(result: "APROVADO" | "PENDENCIA" | "REPROVADO") {
-    await fetch(`/api/operation/${preSaleId}/launch`, {
+    setBusy(result);
+    setError("");
+    const res = await fetch(`/api/operation/${preSaleId}/launch`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ result, quoteNumber, orderNumber, notes }),
     });
+    setBusy(null);
+    if (!res.ok) {
+      setError("Não foi possível atualizar o lançamento.");
+      return;
+    }
     router.push("/operacao");
     router.refresh();
   }
@@ -38,15 +47,20 @@ export function LaunchForm({ preSaleId }: { preSaleId: string }) {
         <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="A IA usará exatamente este texto em PENDÊNCIA ou REPROVADO." />
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => submit("APROVADO")}>
-          APROVADO
+        <Button disabled={!!busy} className="bg-emerald-600 hover:bg-emerald-700" onClick={() => submit("APROVADO")}>
+          {busy === "APROVADO" ? "Registrando..." : "APROVADO"}
         </Button>
-        <Button variant="outline" onClick={() => submit("PENDENCIA")}>
-          PENDÊNCIA
+        <Button disabled={!!busy} variant="outline" onClick={() => submit("PENDENCIA")}>
+          {busy === "PENDENCIA" ? "Registrando..." : "PENDÊNCIA"}
         </Button>
-        <Button variant="destructive" onClick={() => submit("REPROVADO")}>
-          REPROVADO
+        <Button disabled={!!busy} variant="destructive" onClick={() => submit("REPROVADO")}>
+          {busy === "REPROVADO" ? "Registrando..." : "REPROVADO"}
         </Button>
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
       </div>
     </div>
   );

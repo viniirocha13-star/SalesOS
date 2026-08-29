@@ -35,11 +35,19 @@ export default async function LeadsPage({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Leads</h1>
+          <h1 className="text-2xl font-semibold" data-testid="heading-leads">
+            Leads
+          </h1>
           <p className="text-sm text-zinc-500">Pipeline comercial com origem e UTM persistidos.</p>
         </div>
-        <form className="flex gap-2">
-          <Input name="q" placeholder="Buscar" defaultValue={q} className="w-56" />
+        <form className="flex items-end gap-2" role="search">
+          <label className="text-sm">
+            Buscar leads
+            <Input name="q" placeholder="Nome, telefone ou cidade" defaultValue={q} className="mt-1 w-56" />
+          </label>
+          <button type="submit" className="h-9 rounded-lg border bg-white px-3 text-sm hover:bg-zinc-50">
+            Buscar
+          </button>
         </form>
       </div>
       <div className="flex flex-wrap gap-1">
@@ -65,6 +73,13 @@ export default async function LeadsPage({
             </tr>
           </thead>
           <tbody>
+            {!leads.length && (
+              <tr>
+                <td className="p-6 text-zinc-500" colSpan={6}>
+                  Nenhum lead encontrado com este filtro.
+                </td>
+              </tr>
+            )}
             {leads.map((lead) => (
               <tr key={lead.id} className="border-t">
                 <td className="p-3">

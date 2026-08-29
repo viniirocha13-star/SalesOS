@@ -55,6 +55,11 @@ async function main() {
     create: { name: "Operador Lançamento", email: "zoe.m@example.net", passwordHash: hash, role: "OPERADOR" },
   });
   await prisma.user.upsert({
+    where: { email: "tina.r@example.net" },
+    update: {},
+    create: { name: "Operadora Inbox", email: "tina.r@example.net", passwordHash: hash, role: "OPERADOR" },
+  });
+  await prisma.user.upsert({
     where: { email: "samuel.w@example.com" },
     update: {},
     create: { name: "Analista de Performance", email: "samuel.w@example.com", passwordHash: hash, role: "ANALISTA" },
@@ -281,12 +286,28 @@ async function main() {
     },
   });
   const conv1 = await prisma.conversation.create({
-    data: { leadId: lead1.id, channel: "SIMULATOR", status: "IA_ATIVA" },
+    data: { leadId: lead1.id, channel: "SIMULATOR", status: "IA_ATIVA", lastMessageAt: new Date(), salesStage: "PRE_SALE_READY" },
   });
   await prisma.message.createMany({
     data: [
-      { conversationId: conv1.id, direction: "INBOUND", body: "Oi, vi o anúncio da internet em Caucaia" },
-      { conversationId: conv1.id, direction: "OUTBOUND", body: "Olá! Sou da Brisanet. Posso te ajudar com as ofertas vigentes da sua cidade." },
+      { conversationId: conv1.id, direction: "INBOUND", actor: "CUSTOMER", body: "Oi, vi o anúncio da internet em Caucaia" },
+      { conversationId: conv1.id, direction: "OUTBOUND", actor: "AI", body: "Olá! Sou da Brisanet. Posso te ajudar com as ofertas vigentes da sua cidade." },
+      { conversationId: conv1.id, direction: "OUTBOUND", actor: "SYSTEM", body: "Oferta apresentada: Fibra 500 Mega Residencial (aprovada)." },
+      { conversationId: conv1.id, direction: "INBOUND", actor: "CUSTOMER", body: "Pode seguir com essa." },
+    ],
+  });
+  await prisma.conversationMemory.create({
+    data: {
+      conversationId: conv1.id,
+      summary: "Maria em Caucaia aceitou Fibra 500 Mega aprovada.",
+      acceptedOfferId: offer500.id,
+    },
+  });
+  await prisma.domainEvent.createMany({
+    data: [
+      { type: "LEAD_CREATED", aggregateId: lead1.id, payload: { name: "Maria Alves" } },
+      { type: "OFFER_PRESENTED", aggregateId: conv1.id, payload: { offerId: offer500.id } },
+      { type: "PRE_SALE_READY", aggregateId: lead1.id, payload: { city: "Caucaia" } },
     ],
   });
   await prisma.preSale.create({
@@ -350,6 +371,109 @@ async function main() {
   });
   await prisma.objection.create({
     data: { leadId: lost.id, category: "PRECO", text: "Vou ficar com o plano atual", result: "perdido" },
+  });
+
+  await prisma.offer.create({
+    data: {
+      name: "Fibra 200 Mega expirada",
+      category: "Internet fixa",
+      product: "Fibra",
+      speedMbps: 200,
+      priceCents: 7990,
+      city: "Caucaia",
+      status: "EXPIRADA",
+      startsAt: new Date("2025-01-01"),
+      endsAt: new Date("2025-12-31"),
+      originalText: "expirada",
+      bookId: book.id,
+    },
+  });
+  await prisma.offer.create({
+    data: {
+      name: "Oferta rejeitada teste",
+      category: "Internet fixa",
+      product: "Fibra",
+      city: "Caucaia",
+      status: "REJEITADA",
+      originalText: "rejeitada",
+      bookId: book.id,
+    },
+  });
+
+  const extra = [
+    ["Carla Mendes", "85991000005", "Sobral", "NOVO"],
+    ["Rafael Souza", "85991000006", "Juazeiro do Norte", "EM_ATENDIMENTO_IA"],
+    ["Lívia Rocha", "85991000007", "Mossoró", "QUALIFICANDO"],
+    ["Diego Martins", "85991000008", "Natal", "CONSULTANDO_VIABILIDADE"],
+    ["Beatriz Nunes", "85991000009", "João Pessoa", "NEGOCIANDO"],
+    ["Hugo Alves", "85991000010", "Recife", "COLETANDO_DADOS"],
+    ["Patrícia Dias", "85991000011", "Fortaleza", "CONTRATO"],
+    ["Igor Melo", "85991000012", "Caucaia", "DOCUMENTACAO"],
+  ] as const;
+  for (const [name, phone, city, status] of extra) {
+    const lead = await prisma.lead.create({
+      data: {
+        name,
+        phone,
+        city,
+        origin: "LINK",
+        campaignId: google.id,
+        status,
+        score: 35,
+        tenantId: tenant.id,
+      },
+    });
+    await prisma.leadStatusHistory.create({ data: { leadId: lead.id, toStatus: status, reason: "seed" } });
+  }
+
+  const convHuman = await prisma.conversation.create({
+    data: {
+      leadId: lead2.id,
+      channel: "SIMULATOR",
+      status: "HANDOFF_HUMANO",
+      aiEnabled: false,
+      salesStage: "HUMAN_HANDOFF",
+      lastMessageAt: new Date(),
+    },
+  });
+  await prisma.message.createMany({
+    data: [
+      { conversationId: convHuman.id, direction: "INBOUND", actor: "CUSTOMER", body: "Quero falar com alguém" },
+      { conversationId: convHuman.id, direction: "OUTBOUND", actor: "HUMAN", body: "Olá, sou da operação. Posso te ajudar." },
+      { conversationId: convHuman.id, direction: "OUTBOUND", actor: "SYSTEM", body: "IA pausada nesta conversa." },
+    ],
+  });
+
+  await prisma.preSale.create({
+    data: {
+      leadId: lead2.id,
+      offerId: offer500.id,
+      status: "PENDENCIA",
+      launchResult: "PENDENCIA",
+      launchNotes: "Documento do titular pendente.",
+      address: "Caucaia",
+    },
+  });
+  const approvedLead = await prisma.lead.findFirst({ where: { name: "Patrícia Dias" } });
+  if (approvedLead) {
+    await prisma.preSale.create({
+      data: {
+        leadId: approvedLead.id,
+        offerId: offer500.id,
+        status: "APROVADA",
+        launchResult: "APROVADO",
+        launchNotes: "Cadastro aprovado no seed.",
+      },
+    });
+  }
+  await prisma.preSale.create({
+    data: {
+      leadId: lost.id,
+      offerId: offer500.id,
+      status: "REPROVADA",
+      launchResult: "REPROVADO",
+      launchNotes: "Cliente desistiu no cadastro.",
+    },
   });
 
   await prisma.user.updateMany({ data: { tenantId: tenant.id } });

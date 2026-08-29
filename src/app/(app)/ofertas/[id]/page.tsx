@@ -11,7 +11,10 @@ export default async function OfferReviewPage({ params }: { params: Promise<{ id
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="space-y-3 rounded-xl border bg-white p-4">
-        <h1 className="text-xl font-semibold">Oferta detectada pela IA</h1>
+        <h1 className="text-xl font-semibold" data-testid="heading-offer">
+          {offer.name}
+        </h1>
+        <p className="text-sm text-zinc-500">Oferta extraída do book — revise antes de aprovar para o motor.</p>
         <OfferBadge status={offer.status} />
         <h2 className="text-sm font-medium">Texto original</h2>
         <pre className="max-h-80 overflow-auto rounded bg-zinc-50 p-3 text-xs whitespace-pre-wrap">{offer.originalText}</pre>

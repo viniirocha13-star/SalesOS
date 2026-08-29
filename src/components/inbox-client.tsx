@@ -42,16 +42,31 @@ export function InboxClient() {
     messages: { id: string; actor: string; body: string; createdAt: string }[];
   } | null>(null);
   const [text, setText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   async function loadList() {
-    const res = await fetch(`/api/inbox?filter=${filter}`);
-    const json = await res.json();
-    setList(json.conversations ?? []);
+    try {
+      const res = await fetch(`/api/inbox?filter=${filter}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Falha ao carregar inbox");
+      setList(json.conversations ?? []);
+      setError("");
+    } catch {
+      setError("Não foi possível carregar as conversas. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function open(id: string) {
     setActive(id);
     const res = await fetch(`/api/inbox/${id}`);
+    if (!res.ok) {
+      setDetail(null);
+      setError("Não foi possível abrir a conversa.");
+      return;
+    }
     setDetail(await res.json());
   }
 
@@ -77,9 +92,18 @@ export function InboxClient() {
           ))}
         </div>
         <div className="flex-1 overflow-y-auto">
+          {loading && <p className="p-4 text-sm text-zinc-500">Carregando conversas…</p>}
+          {error && (
+            <p role="alert" className="p-4 text-sm text-red-600">
+              {error}
+            </p>
+          )}
           {list.map((c) => (
             <button
               key={c.id}
+              type="button"
+              data-testid={`conversation-${c.name ?? c.phone}`}
+              aria-label={`Conversa ${c.name ?? c.phone}`}
               onClick={() => open(c.id)}
               className={cn("w-full border-b px-3 py-2 text-left hover:bg-zinc-50", active === c.id && "bg-orange-50")}
             >
@@ -111,12 +135,18 @@ export function InboxClient() {
           )}
         </div>
         <div className="flex-1 space-y-2 overflow-y-auto p-4">
+          {!detail && !active && (
+            <p className="text-sm text-zinc-500">Selecione uma conversa à esquerda para ver mensagens da IA, do cliente e do operador.</p>
+          )}
           {detail?.messages.map((m) => (
             <div key={m.id} className={cn("max-w-[80%] rounded-2xl px-3 py-2 text-sm", actorClass(m.actor))}>
-              <div className="text-[10px] uppercase opacity-70">{m.actor}</div>
+              <div className="text-[10px] uppercase opacity-70">{m.actor === "AI" ? "IA" : m.actor === "CUSTOMER" ? "Cliente" : m.actor === "HUMAN" ? "Humano" : "Sistema"}</div>
               {m.body}
             </div>
           ))}
+          {detail && !detail.messages.length && (
+            <p className="text-sm text-zinc-500">Esta conversa ainda não tem mensagens.</p>
+          )}
         </div>
         <div className="flex gap-2 border-t p-3">
           <Input

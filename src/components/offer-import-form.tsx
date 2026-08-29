@@ -10,7 +10,10 @@ export function OfferImportForm() {
   const router = useRouter();
 
   async function upload() {
-    if (!file) return;
+    if (!file) {
+      setStatus("Selecione um arquivo CSV, XLSX ou PDF.");
+      return;
+    }
     setStatus("Importando e detectando ofertas...");
     const fd = new FormData();
     fd.set("file", file);
@@ -26,11 +29,14 @@ export function OfferImportForm() {
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border bg-white p-3">
-      <input type="file" accept=".csv,.xlsx,.xls,.pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      <label className="text-sm font-medium" htmlFor="book-file">
+        Arquivo do book
+      </label>
+      <input id="book-file" type="file" accept=".csv,.xlsx,.xls,.pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
       <Button onClick={upload} disabled={!file} className="bg-orange-500 hover:bg-orange-600">
-        Enviar book
+        {status.startsWith("Importando") ? "Enviando..." : "Enviar book"}
       </Button>
-      {status && <p className="text-xs text-zinc-500">{status}</p>}
+      {status && <p role="status" className="text-xs text-zinc-500">{status}</p>}
     </div>
   );
 }

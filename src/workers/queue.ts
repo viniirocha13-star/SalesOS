@@ -58,6 +58,15 @@ function enqueueMemory(conversationId: string, delayMs: number) {
   );
 }
 
+export async function closeQueue() {
+  if (inboundQueue) await inboundQueue.close();
+  inboundQueue = null;
+  if (connection) {
+    connection.disconnect();
+    connection = null;
+  }
+}
+
 export function startInboundWorker() {
   const g = globalThis as unknown as { __brisaWorker?: Worker };
   if (g.__brisaWorker) return g.__brisaWorker;

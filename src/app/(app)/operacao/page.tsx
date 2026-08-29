@@ -31,6 +31,13 @@ export default async function OperacaoPage() {
             </tr>
           </thead>
           <tbody>
+            {!queue.length && (
+              <tr>
+                <td className="p-6 text-zinc-500" colSpan={8}>
+                  Fila vazia. Pré-vendas do simulador ou do WhatsApp aparecem aqui.
+                </td>
+              </tr>
+            )}
             {queue.map((item) => (
               <tr key={item.id} className="border-t">
                 <td className="p-3 font-medium">{item.lead.name ?? "—"}</td>

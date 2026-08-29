@@ -11,10 +11,22 @@ cp .env.example .env
 # Postgres + Redis (docker compose up -d) ou serviços locais
 npx prisma migrate dev
 npx prisma db seed
-npm run dev
 ```
 
-App em `http://localhost:43147`. Login seed: `ursula.b@example.com` / `Brisa@2026`
+Processos separados (obrigatório em produção):
+
+```bash
+# WEB — Next.js. Não sobe worker. Fast Refresh não inicializa fila.
+npm run dev
+# ou: npm run build && npm run start
+
+# WORKER — BullMQ / Redis, processo independente
+npm run worker
+```
+
+App em `http://127.0.0.1:43147`. Login seed: `ursula.b@example.com` / `Brisa@2026`
+
+Outros usuários seed (mesma senha): `rachel.c@example.org` (supervisor), `zoe.m@example.net` e `tina.r@example.net` (operadores), `samuel.w@example.com` (analista).
 
 - Inbox `/inbox`
 - Agora (operador) `/home`

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { Offer } from "@prisma/client";
+import { reasonNotEligible } from "./eligibility";
 
 export type OfferEngineInput = {
   city?: string | null;
@@ -30,29 +31,16 @@ export type OfferEngineOutput = {
 
 export async function selectOffers(input: OfferEngineInput): Promise<OfferEngineOutput> {
   const now = new Date();
-  const approved = await prisma.offer.findMany({
-    where: {
-      status: "APROVADA",
-      OR: [{ startsAt: null }, { startsAt: { lte: now } }],
-      AND: [{ OR: [{ endsAt: null }, { endsAt: { gte: now } }] }],
-    },
+  const candidates = await prisma.offer.findMany({
+    where: { status: "APROVADA" },
   });
 
   const rules: string[] = [];
   const rejected: string[] = [];
-  const eligible = approved.filter((offer) => {
-    if (input.city && offer.city && !normalize(offer.city).includes(normalize(input.city)) && !normalize(input.city).includes(normalize(offer.city))) {
-      if (offer.region && !normalize(offer.region).includes(normalize(input.city))) {
-        rejected.push(`${offer.id}: cidade/região`);
-        return false;
-      }
-      if (!offer.region) {
-        rejected.push(`${offer.id}: cidade distinta`);
-        return false;
-      }
-    }
-    if (offer.eligibility && input.need && /somente móvel/i.test(offer.eligibility) && /fibra|fixa/i.test(input.need)) {
-      rejected.push(`${offer.id}: elegibilidade`);
+  const eligible = candidates.filter((offer) => {
+    const reason = reasonNotEligible(offer, input, now);
+    if (reason) {
+      rejected.push(reason);
       return false;
     }
     return true;

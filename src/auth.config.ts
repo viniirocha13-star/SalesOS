@@ -1,5 +1,13 @@
 import type { NextAuthConfig } from "next-auth";
-type Role = "ADMIN" | "SUPERVISOR" | "OPERADOR" | "ANALISTA";
+type Role =
+  | "SUPER_ADMIN"
+  | "ADMIN"
+  | "MANAGER"
+  | "SUPERVISOR"
+  | "OPERADOR"
+  | "OPERATOR"
+  | "ANALISTA"
+  | "ANALYST";
 
 export const authConfig = {
   trustHost: true,
