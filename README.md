@@ -69,18 +69,33 @@ WhatsApp real: preencha as variáveis Meta no `.env` e aponte o webhook para `/a
 
 Qualidade: `npm run lint && npm run typecheck && npm run test && npm run build && npm run test:e2e`
 
-O E2E Playwright reutiliza o servidor já no ar (`reuseExistingServer`) na porta `APP_PORT`. Relatório da auditoria do núcleo: `docs/AUDIT.md`. Fase WhatsApp + OpenAI: `docs/PHASE-WHATSAPP.md` e `docs/WHATSAPP.md`. Fase comercial: `docs/PHASE-COMMERCIAL.md`.
+O E2E Playwright reutiliza o servidor já no ar (`reuseExistingServer`) na porta `APP_PORT`. Relatório da auditoria do núcleo: `docs/AUDIT.md`. Fase WhatsApp + OpenAI: `docs/PHASE-WHATSAPP.md` e `docs/WHATSAPP.md`. Fase comercial: `docs/PHASE-COMMERCIAL.md`. Pós-venda: `docs/PHASE-POSTSALE.md`.
 
 Modelos só via env: `AI_SALES_MODEL`, `AI_COMPLEX_MODEL`, `AI_UTILITY_MODEL`. Sem `OPENAI_API_KEY` o vendedor usa mock de desenvolvimento (não inventa desconto).
 
-## Preview do Cursor não responde, mas app está online
+## Cursor Preview vs Application Health
 
-O Preview/proxy do Cursor pode ficar mudo enquanto o Next responde em `127.0.0.1`. Isso **não** é travamento da aplicação.
+O Preview do Cursor é só visualização/proxy. **Não** é health check da aplicação.
 
-1. Verificar `GET /api/health` — deve retornar `status: "ok"` e `web: "up"` sem chamar OpenAI ou Meta.
-2. Abrir direto: [http://127.0.0.1:43147/login](http://127.0.0.1:43147/login)
-3. Verificar o processo WEB (`npm run dev:web` ou `npm run start:web`).
-4. Verificar o processo WORKER (`npm run dev:worker`). No Diagnóstico, WORKER ONLINE = heartbeat recente no Redis.
-5. Só reiniciar o servidor se o health check **falhar**. Não mate processos desconhecidos na porta; use o PID do Next/worker que você mesmo iniciou.
+**Fonte de verdade da aplicação:** `GET /api/health`, HTTP de `/login`, processos WEB e WORKER, banco/Redis quando aplicável.
 
-Integração `NOT_CONFIGURED` (OpenAI/WhatsApp) **não** significa app offline.
+Se `/api/health` = 200, `status=ok` e `/login` = 200 → **APP_STATUS = HEALTHY**.
+
+Mesmo que o Cursor mostre “Preview not responding”:
+
+- registrar só `CURSOR_PREVIEW_UNAVAILABLE`;
+- **não** matar o Next, **não** liberar a porta `43147`, **não** reiniciar WEB/WORKER;
+- **não** alterar login, Auth.js, Inbox nem abrir investigação funcional;
+- reabrir `http://127.0.0.1:43147/login` no navegador ou só reemitir o Preview, sem tocar no servidor.
+
+É proibido o loop: Preview falhou → kill Next → restart → Preview falhou → kill.
+
+`NOT_CONFIGURED` (OpenAI/WhatsApp) **não** é app offline.
+
+### CredentialsSignin esperado em teste de senha inválida
+
+O log `[auth][error] CredentialsSignin` **não** é falha automática.
+
+Se o teste usa senha errada e a UI mostra “E-mail ou senha inválidos.” → **EXPECTED_AUTH_REJECTION**. Não “corrigir” Auth.js.
+
+Investigar autenticação só se: credencial válida não entra; sessão não é criada; autenticado volta ao `/login`; `/login` ou callback Auth devolve 5xx; RBAC quebrado.

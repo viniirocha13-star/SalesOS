@@ -12,18 +12,43 @@
 | Mensagem duplicada | conferir `wamid` / `idempotencyKey` |
 | IA responde com humano no comando | `aiEnabled` deve ser false após Assumir |
 | Envio FAILED | job SEND retenta; alerta no Inbox |
-| Preview Cursor “not responding” | ver secção abaixo — não reiniciar em loop |
-| Porta ocupada ao subir WEB | não matar PIDs desconhecidos; abrir `/api/health` e `/login` |
+| Preview Cursor “not responding” | **Cursor Preview vs Application Health** — não reiniciar se HEALTHY |
+| Porta 43147 em uso pelo WEB saudável | **não** matar nem “liberar” a porta |
 | WORKER OFFLINE no Diagnóstico | `npm run dev:worker`; Redis; heartbeat `ops:worker:heartbeat` |
+| `[auth][error] CredentialsSignin` + “E-mail ou senha inválidos.” | **EXPECTED_AUTH_REJECTION** — não corrigir |
 
-## Preview do Cursor não responde, mas app está online
+## Cursor Preview vs Application Health
 
-O proxy/Preview do Cursor pode falhar enquanto o Next está saudável. **Não** mate a porta nem reinicie em ciclo para “consertar o Preview”.
+Diagnóstico **definitivo** do ambiente de desenvolvimento.
 
-1. Verificar `GET http://127.0.0.1:43147/api/health` — `status: "ok"`, `web: "up"`. Não exige OpenAI nem Meta.
-2. Abrir direto no navegador: `http://127.0.0.1:43147/login`
-3. Confirmar o processo WEB: `npm run dev:web` ou `npm run start:web` (PID conhecido).
-4. Confirmar o processo WORKER: `npm run dev:worker`. Em Administração → Diagnóstico: WEB / WORKER / REDIS. OpenAI e WhatsApp podem ser `NOT_CONFIGURED` sem o app estar offline.
-5. Só reiniciar o Next se o health check falhar. Pare pelo PID do processo que você iniciou.
+| Camada | Fonte de verdade |
+|---|---|
+| Aplicação | `GET /api/health`, HTTP de `/login`, processo WEB, processo WORKER, banco/Redis |
+| Preview do Cursor | Só proxy/visualização. Falha **não** significa Next fora do ar |
 
-Scripts: `npm run dev:web`, `npm run dev:worker`, `npm run dev` (os dois em processos independentes via concurrently).
+**APP_STATUS = HEALTHY** quando:
+
+1. `GET /api/health` = 200 e `status=ok` (e `web=up`);
+2. `/login` = 200.
+
+Antes de **qualquer** restart: health → `/login` → processo WEB → worker. Só se a aplicação estiver **indisponível**. Nunca usar o cartão de Preview como health check.
+
+Se HEALTHY e o Cursor mostrar “Preview not responding”:
+
+1. Registrar `CURSOR_PREVIEW_UNAVAILABLE`.
+2. Não matar o Next. Não liberar `43147`. Não reiniciar WEB nem WORKER.
+3. Não modificar login, Auth.js, Inbox, worker ou código funcional.
+4. Não iniciar investigação funcional.
+5. Validação visual: `http://127.0.0.1:43147/login` no navegador externo, ou só reabrir o Preview.
+
+**Anti-loop (proibido):** Preview falhou → kill Next → restart → Preview falhou → kill.
+
+Aprovado e imutável por causa do Preview: login, dashboard, Inbox em colunas, tema claro, assumir/devolver IA, worker WhatsApp, smoke, e2e 9/9.
+
+Scripts: `npm run dev:web`, `npm run dev:worker`, `npm run dev` (processos independentes).
+
+## CredentialsSignin esperado em teste de senha inválida
+
+`[auth][error] CredentialsSignin` no log, com UI “E-mail ou senha inválidos.”, é **EXPECTED_AUTH_REJECTION**. O teste de credencial inválida está correto. Não criar correção.
+
+Investigar auth somente se: credencial válida não autentica; sessão não criada; usuário autenticado volta ao login; `/login` ou callback Auth retorna 5xx; RBAC quebrado.
