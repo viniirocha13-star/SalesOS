@@ -56,7 +56,8 @@ test("Laboratório: objeção de preço sem desconto inventado", async ({ page }
   await login(page);
   await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
   await page.getByRole("link", { name: "Laboratório" }).click();
-  await page.getByRole("button", { name: "Nova conversa simulada" }).click();
+  await page.getByTestId("new-simulator").click();
+  await expect(page).toHaveURL(/\/conversas\/.+/);
   await expect(page.getByText("Laboratório IA")).toBeVisible({ timeout: 20_000 });
   await page.getByTestId("customer-message").fill("Quero internet em Caucaia.");
   await page.getByRole("button", { name: /Enviar/i }).click();

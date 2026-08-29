@@ -1,26 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { createLead } from "@/domain/leads";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { redirect } from "next/navigation";
-import { auth } from "@/auth";
-
-async function startSimulator() {
-  "use server";
-  const session = await auth();
-  if (!session?.user) return;
-  const phone = `8599${Math.floor(10000000 + Math.random() * 89999999)}`;
-  const lead = await createLead({
-    name: "Lead simulador",
-    phone,
-    origin: "OUTROS",
-    source: "simulator",
-  });
-  const conv = await prisma.conversation.create({
-    data: { leadId: lead.id, channel: "SIMULATOR", status: "IA_ATIVA" },
-  });
-  redirect(`/conversas/${conv.id}`);
-}
+import { StartSimulatorButton } from "@/components/start-simulator-button";
 
 export default async function ConversasPage() {
   const conversations = await prisma.conversation.findMany({
@@ -35,9 +15,7 @@ export default async function ConversasPage() {
           <h1 className="text-2xl font-semibold">Conversas</h1>
           <p className="text-sm text-zinc-500">Laboratório: o modelo vende; o backend limita fatos. Sem roteiro de frases.</p>
         </div>
-        <form action={startSimulator}>
-          <Button className="bg-orange-500 hover:bg-orange-600">Nova conversa simulada</Button>
-        </form>
+        <StartSimulatorButton />
       </div>
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="w-full text-sm">
