@@ -56,6 +56,13 @@ export async function createPreSale(input: {
   });
   await transitionLead(input.leadId, "PRONTO_PARA_LANCAMENTO", "pré-venda criada");
   await emit("PRE_SALE_CREATED", preSale.id, { leadId: input.leadId, offerId: input.offerId });
+  await prisma.notification.create({
+    data: {
+      title: "Pedido pronto para lançar",
+      body: `${preSale.lead.name ?? "Cliente"} · ${preSale.offer.name}`,
+      href: `/operacao/${preSale.id}`,
+    },
+  });
   return preSale;
 }
 

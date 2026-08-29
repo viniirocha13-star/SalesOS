@@ -18,7 +18,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     });
     if (!conv) return NextResponse.json({ error: "not_found" }, { status: 404 });
     await prisma.conversation.update({ where: { id }, data: { unreadCount: 0 } });
-    return NextResponse.json(conv);
+    const { getLaunchSnapshot } = await import("@/domain/launch-ready");
+    const launch = await getLaunchSnapshot(conv.leadId);
+    return NextResponse.json({ ...conv, launch });
   } catch (error) {
     return errorResponse(error);
   }

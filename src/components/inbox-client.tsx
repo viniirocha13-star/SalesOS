@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { LeadBadge } from "@/components/status-badge";
+import { LaunchReadyPanel, type LaunchInfo } from "@/components/launch-ready-panel";
 import { formatDateTime } from "@/lib/format";
 import type { LeadStatus } from "@prisma/client";
 import { CheckCircle2, Clock3, Filter, RefreshCw, Send, UserRound } from "lucide-react";
@@ -46,8 +47,9 @@ type Stats = {
 type Detail = {
   aiEnabled: boolean;
   salesStage: string;
-  lead: { name: string | null; phone: string; city: string | null; status: LeadStatus; score: number; productInterest: string | null };
+  lead: { id: string; name: string | null; phone: string; city: string | null; status: LeadStatus; score: number; productInterest: string | null };
   messages: { id: string; actor: string; body: string; createdAt: string; status?: string }[];
+  launch?: LaunchInfo;
 };
 
 const LANES: { id: Lane; title: string; tone: string; badge: (c: Row) => string }[] = [
@@ -320,6 +322,7 @@ export function InboxClient() {
             <h2 className="text-lg font-semibold">Lead</h2>
             {detail ? (
               <>
+                {detail.launch && <LaunchReadyPanel launch={detail.launch} leadId={detail.lead.id} />}
                 <p>{detail.lead.name}</p>
                 <p>{detail.lead.phone}</p>
                 <p>{detail.lead.city}</p>
