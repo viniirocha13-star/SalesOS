@@ -24,7 +24,7 @@ export function OfferImportForm() {
       return;
     }
     setStatus(
-      `${json.offers?.length ?? 0} planos detectados. Abra cada oferta e aprove — só APROVADA e vigente entra na IA.`,
+      `${json.offers?.length ?? 0} planos novos detectados. Eles somam aos já aprovados. Aprove cada um para a IA usar.`,
     );
     router.refresh();
   }

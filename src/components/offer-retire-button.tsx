@@ -4,22 +4,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-export function BookRetireButton({ bookId, name }: { bookId: string; name: string }) {
+export function OfferRetireButton({ offerId, name }: { offerId: string; name: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   async function retire() {
     const ok = window.confirm(
-      `Excluir o book “${name}”? Só os planos deste arquivo saem da IA. Os demais books e planos aprovados continuam. Vendas já lançadas não são apagadas.`,
+      `Retirar “${name}” da IA? Os outros planos aprovados continuam. Não é preciso enviar um book novo.`,
     );
     if (!ok) return;
     setBusy(true);
     setError("");
-    const res = await fetch(`/api/offers/books/${bookId}`, { method: "DELETE" });
+    const res = await fetch(`/api/offers/${offerId}`, { method: "DELETE" });
     setBusy(false);
     if (!res.ok) {
-      setError("Não foi possível excluir o book.");
+      setError("Não foi possível retirar este plano.");
       return;
     }
     router.refresh();
@@ -28,7 +28,7 @@ export function BookRetireButton({ bookId, name }: { bookId: string; name: strin
   return (
     <div>
       <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => void retire()}>
-        {busy ? "Excluindo..." : "Excluir este book"}
+        {busy ? "Retirando..." : "Retirar da IA"}
       </Button>
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>

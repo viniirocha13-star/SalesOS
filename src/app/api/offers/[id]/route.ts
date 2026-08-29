@@ -31,3 +31,18 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
     return errorResponse(error);
   }
 }
+
+export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  try {
+    const user = await requirePermission("offers.import");
+    const { id } = await ctx.params;
+    const offer = await prisma.offer.update({
+      where: { id },
+      data: { status: "EXPIRADA" },
+    });
+    await audit({ actorId: user.id, action: "offer.EXPIRADA", entity: "Offer", entityId: id });
+    return NextResponse.json(offer);
+  } catch (error) {
+    return errorResponse(error);
+  }
+}

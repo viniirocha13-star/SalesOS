@@ -4,6 +4,7 @@ import { formatBRL, formatDateTime } from "@/lib/format";
 import Link from "next/link";
 import { OfferImportForm } from "@/components/offer-import-form";
 import { BookRetireButton } from "@/components/book-retire-button";
+import { OfferRetireButton } from "@/components/offer-retire-button";
 import { auth } from "@/auth";
 import { can } from "@/lib/rbac";
 import { PageHeader } from "@/components/page-header";
@@ -21,16 +22,16 @@ export default async function OfertasPage() {
       <PageHeader
         kicker="Catálogo"
         title="Books e ofertas"
-        description="Aqui você envia o book atual. Depois de aprovar cada plano, a IA só usa o que está vigente — nunca inventa preço."
+        description="Novos books somam planos aos que já estão aprovados. Excluir um book ou um plano é independente — não precisa ter um arquivo novo no lugar."
         titleTestId="heading-books"
       />
 
       <section className="surface p-5" id="upload-book">
         <h2 className="text-lg font-semibold">Atualizar a IA com o book vigente</h2>
         <p className="mt-1 max-w-2xl text-sm text-slate-500">
-          Envie o CSV, XLSX ou PDF do book comercial atual. Os planos entram como rascunho. Supervisor ou admin
-          abre a oferta e clica em Aprovar. Só então o Offer Engine e o WhatsApp passam a oferecer esses valores.
-          Para trocar de book, exclua o anterior — os planos dele saem da IA na hora.
+          Envie CSV, XLSX ou PDF. Os planos novos entram como rascunho e, depois de aprovados, <strong>juntam-se</strong> aos
+          vigentes. Não é obrigatório excluir o book antigo. Use Excluir só quando quiser tirar aquele arquivo (e os
+          planos dele) da IA.
         </p>
         <div className="mt-4">
           {canImport ? (
@@ -55,7 +56,7 @@ export default async function OfertasPage() {
               <th className="p-3">Arquivo</th>
               <th className="p-3">Ofertas</th>
               <th className="p-3">Quando</th>
-              {canImport && <th className="p-3">IA</th>}
+              {canImport && <th className="p-3">Ação</th>}
             </tr>
           </thead>
           <tbody>
@@ -91,6 +92,7 @@ export default async function OfertasPage() {
               <th className="p-3">Velocidade</th>
               <th className="p-3">Preço</th>
               <th className="p-3">Status</th>
+              {canImport && <th className="p-3">Ação</th>}
             </tr>
           </thead>
           <tbody>
@@ -107,11 +109,20 @@ export default async function OfertasPage() {
                 <td className="p-3">
                   <OfferBadge status={o.status} />
                 </td>
+                {canImport && (
+                  <td className="p-3">
+                    {o.status !== "EXPIRADA" && o.status !== "REJEITADA" ? (
+                      <OfferRetireButton offerId={o.id} name={o.name} />
+                    ) : (
+                      <span className="text-xs text-slate-400">Fora da IA</span>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
             {!offers.length && (
               <tr>
-                <td className="p-6 text-ink/50" colSpan={5}>
+                <td className="p-6 text-ink/50" colSpan={canImport ? 6 : 5}>
                   Nenhuma oferta extraída. Importe um book para revisar.
                 </td>
               </tr>
