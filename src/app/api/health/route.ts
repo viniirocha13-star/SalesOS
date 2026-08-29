@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { collectOpsStatus } from "@/lib/ops-status";
 
 export async function GET() {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    return NextResponse.json({ ok: true, db: "up", redis: Boolean(process.env.REDIS_URL) });
-  } catch {
-    return NextResponse.json({ ok: false, db: "down" }, { status: 503 });
-  }
+  const ops = await collectOpsStatus();
+  return NextResponse.json({
+    status: ops.status,
+    web: ops.web,
+    timestamp: ops.timestamp,
+    version: ops.version,
+    webUptimeSeconds: ops.webUptimeSeconds,
+    database: ops.database,
+    redis: ops.redis,
+    worker: ops.worker,
+    openai: ops.openai,
+    whatsapp: ops.whatsapp,
+  });
 }

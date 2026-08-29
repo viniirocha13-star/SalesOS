@@ -43,6 +43,7 @@ const MAIN: { href: string; label: string; icon: typeof Bell; perm: string }[] =
 ];
 
 const ADMIN: { href: string; label: string; icon: typeof Bell; perm: string }[] = [
+  { href: "/admin/diagnostico", label: "Diagnóstico", icon: SlidersHorizontal, perm: "admin.audit" },
   { href: "/admin/integracoes", label: "Integrações", icon: Plug, perm: "admin.audit" },
   { href: "/admin", label: "Usuários", icon: Users, perm: "admin.users" },
   { href: "/admin", label: "Configurações", icon: Settings, perm: "admin.audit" },

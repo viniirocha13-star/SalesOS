@@ -14,6 +14,7 @@ export default async function AdminPage() {
       <section className="surface p-5">
         <h2 className="font-heading mb-3 text-xl">Módulos</h2>
         <div className="flex flex-wrap gap-3 text-sm">
+          <a className="underline" href="/admin/diagnostico">Diagnóstico</a>
           <a className="underline" href="/admin/integracoes">Integrações</a>
           <a className="underline" href="/admin/laboratorio">Laboratório IA</a>
         </div>
