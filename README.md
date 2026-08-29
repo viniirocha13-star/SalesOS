@@ -34,3 +34,7 @@ Outros usuários seed (mesma senha): `rachel.c@example.org` (supervisor), `zoe.m
 - Integrações `/admin/integracoes`
 
 WhatsApp real: preencha as variáveis Meta no `.env` e aponte o webhook para `/api/whatsapp/webhook`. Sem chave OpenAI o laboratório usa `DevMockLlmProvider` (identificado na UI).
+
+Qualidade: `npm run lint && npm run typecheck && npm run test && npm run build && npm run test:e2e`
+
+O E2E Playwright espera o servidor de produção (`npm run start` na porta 43147). Relatório da auditoria do núcleo: `docs/AUDIT.md`.
