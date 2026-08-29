@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { auth } from "@/auth";
 import { can } from "@/lib/rbac";
 import type { Role } from "@prisma/client";
+import Link from "next/link";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -19,10 +20,10 @@ export default async function AdminPage() {
       <section className="surface p-5">
         <h2 className="font-heading mb-3 text-xl">Módulos</h2>
         <div className="flex flex-wrap gap-3 text-sm">
-          <a className="underline" href="/admin/diagnostico">Diagnóstico</a>
-          <a className="underline" href="/admin/integracoes">Integrações</a>
-          <a className="underline" href="/admin/laboratorio">Laboratório IA</a>
-          <a className="underline" href="/ofertas#upload-book">Upload do book vigente</a>
+          <Link className="underline" href="/admin/diagnostico">Diagnóstico</Link>
+          <Link className="underline" href="/admin/integracoes">Integrações</Link>
+          <Link className="underline" href="/admin/laboratorio">Laboratório IA</Link>
+          <Link className="underline" href="/ofertas#upload-book">Upload do book vigente</Link>
         </div>
       </section>
       <section className="surface p-5">

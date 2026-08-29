@@ -37,6 +37,10 @@ function offer(partial: Partial<Offer>): Offer {
 describe("Offer Engine — elegibilidade", () => {
   const now = new Date("2026-08-29");
 
+  it("oferta com status EXPIRADA sai da IA", () => {
+    expect(isOfferCommerciallyUsable(offer({ status: "EXPIRADA" }), now)).toBe(false);
+  });
+
   it("oferta expirada não é utilizável", () => {
     expect(isOfferCommerciallyUsable(offer({ endsAt: new Date("2026-01-01") }), now)).toBe(false);
   });

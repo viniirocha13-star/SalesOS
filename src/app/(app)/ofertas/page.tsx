@@ -3,6 +3,7 @@ import { OfferBadge } from "@/components/status-badge";
 import { formatBRL, formatDateTime } from "@/lib/format";
 import Link from "next/link";
 import { OfferImportForm } from "@/components/offer-import-form";
+import { BookRetireButton } from "@/components/book-retire-button";
 import { auth } from "@/auth";
 import { can } from "@/lib/rbac";
 import { PageHeader } from "@/components/page-header";
@@ -29,6 +30,7 @@ export default async function OfertasPage() {
         <p className="mt-1 max-w-2xl text-sm text-slate-500">
           Envie o CSV, XLSX ou PDF do book comercial atual. Os planos entram como rascunho. Supervisor ou admin
           abre a oferta e clica em Aprovar. Só então o Offer Engine e o WhatsApp passam a oferecer esses valores.
+          Para trocar de book, exclua o anterior — os planos dele saem da IA na hora.
         </p>
         <div className="mt-4">
           {canImport ? (
@@ -36,9 +38,9 @@ export default async function OfertasPage() {
           ) : (
             <p className="text-sm text-slate-500">
               Seu perfil só consulta o catálogo. Peça a um supervisor ou admin para enviar o book em{" "}
-              <a className="text-teal underline" href="/ofertas#upload-book">
+              <Link className="text-teal underline" href="/ofertas#upload-book">
                 Ofertas → Atualizar book vigente
-              </a>
+              </Link>
               .
             </p>
           )}
@@ -53,6 +55,7 @@ export default async function OfertasPage() {
               <th className="p-3">Arquivo</th>
               <th className="p-3">Ofertas</th>
               <th className="p-3">Quando</th>
+              {canImport && <th className="p-3">IA</th>}
             </tr>
           </thead>
           <tbody>
@@ -61,11 +64,16 @@ export default async function OfertasPage() {
                 <td className="p-3">{b.originalName}</td>
                 <td className="p-3">{b._count.offers}</td>
                 <td className="p-3">{formatDateTime(b.createdAt)}</td>
+                {canImport && (
+                  <td className="p-3">
+                    <BookRetireButton bookId={b.id} name={b.originalName} />
+                  </td>
+                )}
               </tr>
             ))}
             {!books.length && (
               <tr>
-                <td className="p-6 text-zinc-500" colSpan={3}>
+                <td className="p-6 text-zinc-500" colSpan={canImport ? 4 : 3}>
                   Nenhum book ainda. Envie um CSV de exemplo em /samples/book-ofertas-exemplo.csv
                 </td>
               </tr>
