@@ -130,6 +130,40 @@ export const SALES_TOOLS = [
     description: "Registra motivo de perda.",
     parameters: { type: "object", properties: { reason: { type: "string" } }, required: ["reason"] },
   },
+  {
+    name: "get_objection_context",
+    description: "Contexto estruturado da objeção. Nunca devolve resposta pronta ao cliente.",
+    parameters: { type: "object", properties: { objection_type: { type: "string" } } },
+  },
+  {
+    name: "compare_offers",
+    description: "Compara duas ofertas aprovadas. Só fatos do cadastro.",
+    parameters: { type: "object", properties: { offerIdA: { type: "string" }, offerIdB: { type: "string" } }, required: ["offerIdA", "offerIdB"] },
+  },
+  {
+    name: "register_commercial_acceptance",
+    description: "Registra aceite após oferta apresentada e vigente.",
+    parameters: { type: "object", properties: { offerId: { type: "string" } } },
+  },
+  {
+    name: "get_required_customer_fields",
+    description: "Lista campos cadastrais ainda faltantes. Sem pedir tudo de uma vez.",
+    parameters: { type: "object", properties: {} },
+  },
+  {
+    name: "save_customer_field",
+    description: "Grava um campo cadastral. CPF é validado, criptografado e nunca volta completo.",
+    parameters: {
+      type: "object",
+      properties: { field: { type: "string" }, value: { type: "string" } },
+      required: ["field", "value"],
+    },
+  },
+  {
+    name: "get_business_rule",
+    description: "Consulta regra comercial aprovada na base de conhecimento.",
+    parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+  },
 ] as const;
 
 const TOOL_ALIAS: Record<string, string> = {
@@ -160,6 +194,19 @@ export async function runTool(
       if (ranking.best_offer) {
         await transitionLead(ctx.leadId, "OFERTA_APRESENTADA", ranking.best_offer.id);
         await emit("OFFER_PRESENTED", ctx.leadId, { offerId: ranking.best_offer.id });
+        await prisma.offerPresentation.create({
+          data: {
+            conversationId: ctx.conversationId,
+            offerId: ranking.best_offer.id,
+            snapshot: {
+              name: ranking.best_offer.name,
+              priceCents: ranking.best_offer.promotionalPriceCents ?? ranking.best_offer.priceCents,
+              speedMbps: ranking.best_offer.speedMbps,
+              benefits: ranking.best_offer.benefits,
+              loyalty: ranking.best_offer.loyalty,
+            },
+          },
+        });
       }
       return {
         offers,
@@ -218,7 +265,26 @@ export async function runTool(
         where: { id: ctx.conversationId },
         include: { memory: true },
       });
-      return { lead, salesStage: conv?.salesStage, memory: conv?.memory?.customerFacts };
+      const cpfCollected = Boolean(lead?.customer?.documentCpf || lead?.customer?.documentCpfEncrypted);
+      const { cpfPromptSafe } = await import("@/lib/cpf");
+      return {
+        lead: lead
+          ? {
+              ...lead,
+              customer: lead.customer
+                ? {
+                    id: lead.customer.id,
+                    fullName: lead.customer.fullName,
+                    email: lead.customer.email,
+                    phone: lead.customer.phone,
+                    ...cpfPromptSafe(cpfCollected, cpfCollected),
+                  }
+                : null,
+            }
+          : null,
+        salesStage: conv?.salesStage,
+        memory: conv?.memory?.customerFacts,
+      };
     }
     case "update_customer_fact": {
       if (!args.key) {
@@ -288,22 +354,26 @@ export async function runTool(
       if (!offer) return { error: "oferta_nao_aprovada" };
       const consents = await prisma.consent.findMany({ where: { leadId: ctx.leadId } });
       const summary = `Cliente ${lead.name ?? lead.phone} em ${lead.city ?? "cidade não informada"} aceitou ${offer.name} (${offer.speedMbps ?? "—"} Mega). Preço vigente: ${formatBRL(offer.promotionalPriceCents ?? offer.priceCents)}.`;
-      const preSale = await createPreSale({
-        leadId: ctx.leadId,
-        offerId: offer.id,
-        address: lead.address ?? undefined,
-        aiSummary: summary,
-        consentsSnapshot: consents,
-      });
-      await emit("CUSTOMER_ACCEPTED", ctx.leadId, { offerId: offer.id });
-      return { preSale };
+      try {
+        const preSale = await createPreSale({
+          leadId: ctx.leadId,
+          offerId: offer.id,
+          address: lead.address ?? undefined,
+          aiSummary: summary,
+          consentsSnapshot: consents,
+        });
+        await emit("CUSTOMER_ACCEPTED", ctx.leadId, { offerId: offer.id });
+        return { preSale };
+      } catch (error) {
+        return { error: error instanceof Error ? error.message : "presale_recusada" };
+      }
     }
     case "register_buying_intent": {
       await emit("BUYING_INTENT_DETECTED", ctx.leadId, { offerId: args.offerId, notes: args.notes });
-      await transitionLead(ctx.leadId, "ACEITE_COMERCIAL", "buying_intent");
+      await transitionLead(ctx.leadId, "NEGOCIANDO", "buying_intent");
       const { setSalesStage } = await import("@/ai/orchestrator");
       await setSalesStage(ctx.conversationId, "BUYING_INTENT", "tool", "AI");
-      return { ok: true };
+      return { ok: true, stop_selling: false };
     }
     case "request_human_handoff": {
       await prisma.conversation.update({
@@ -340,15 +410,111 @@ export async function runTool(
           leadId: ctx.leadId,
           category,
           text: String(args.text ?? ""),
-          response: playbook?.argument,
-          result: "respondida",
+          response: null,
+          result: "registrada",
         },
       });
       await transitionLead(ctx.leadId, "NEGOCIANDO", category);
-      if (!playbook) {
-        return { blocked: true, reason: "sem_argumento_aprovado" };
+      const { getObjectionContext } = await import("@/commercial/objection-engine");
+      const structured = await getObjectionContext(ctx.conversationId, category);
+      return {
+        category,
+        allowed_arguments: structured.allowed_arguments,
+        forbidden_claims: structured.forbidden_claims,
+        commercial_goal: structured.commercial_goal,
+        playbook_note: playbook?.argument ?? null,
+      };
+    }
+    case "get_objection_context": {
+      const { getObjectionContext } = await import("@/commercial/objection-engine");
+      return (await getObjectionContext(ctx.conversationId, args.objection_type as string | undefined)) as unknown as Record<string, unknown>;
+    }
+    case "compare_offers": {
+      const a = await prisma.offer.findFirst({ where: { id: String(args.offerIdA), status: "APROVADA" } });
+      const b = await prisma.offer.findFirst({ where: { id: String(args.offerIdB), status: "APROVADA" } });
+      if (!a || !b) return { error: "oferta_nao_aprovada" };
+      return {
+        a: { id: a.id, name: a.name, priceCents: a.promotionalPriceCents ?? a.priceCents, speed: a.speedMbps, benefits: a.benefits },
+        b: { id: b.id, name: b.name, priceCents: b.promotionalPriceCents ?? b.priceCents, speed: b.speedMbps, benefits: b.benefits },
+      };
+    }
+    case "register_commercial_acceptance": {
+      const presented = await prisma.offerPresentation.findFirst({
+        where: { conversationId: ctx.conversationId, offerId: String(args.offerId ?? "") },
+      });
+      let offerId = args.offerId as string | undefined;
+      if (!offerId) {
+        const last = await prisma.offerPresentation.findFirst({
+          where: { conversationId: ctx.conversationId },
+          orderBy: { createdAt: "desc" },
+        });
+        offerId = last?.offerId;
       }
-      return { objectionResponse: playbook.argument, category };
+      if (!offerId) return { error: "oferta_nao_apresentada" };
+      const offer = await prisma.offer.findFirst({ where: { id: offerId, status: "APROVADA" } });
+      if (!offer) return { error: "oferta_nao_aprovada" };
+      if (offer.endsAt && offer.endsAt < new Date()) return { error: "oferta_fora_da_vigencia" };
+      await prisma.commercialAcceptance.create({
+        data: { leadId: ctx.leadId, offerId: offer.id, offerSnapshot: presented?.snapshot ?? { name: offer.name, priceCents: offer.promotionalPriceCents ?? offer.priceCents } },
+      });
+      const { setSalesStage } = await import("@/ai/orchestrator");
+      await setSalesStage(ctx.conversationId, "COMMERCIAL_ACCEPTANCE", "acceptance", "AI");
+      await transitionLead(ctx.leadId, "ACEITE_COMERCIAL", "aceite");
+      await emit("COMMERCIAL_ACCEPTED", ctx.leadId, { offerId: offer.id });
+      return { accepted: true, offerId: offer.id, stop_selling: true };
+    }
+    case "get_required_customer_fields": {
+      const defs = await prisma.requiredFieldDefinition.findMany({ where: { productType: "fibra", required: true } });
+      const lead = await prisma.lead.findUniqueOrThrow({ where: { id: ctx.leadId }, include: { customer: true } });
+      const have: Record<string, boolean> = {
+        FULL_NAME: Boolean(lead.name || lead.customer?.fullName),
+        CPF: Boolean(lead.customer?.documentCpf || lead.customer?.documentCpfEncrypted),
+        EMAIL: Boolean(lead.customer?.email),
+        PHONE: Boolean(lead.phone),
+        CEP: Boolean(lead.zipCode),
+        ADDRESS: Boolean(lead.address),
+        NEIGHBORHOOD: Boolean(lead.neighborhood),
+        CITY: Boolean(lead.city),
+      };
+      const missing = (defs.length ? defs.map((d) => d.fieldKey) : Object.keys(have)).filter((k) => !have[k]);
+      return { missing: missing.slice(0, 2), remaining: missing.length, hint: "solicite no máximo um ou dois campos" };
+    }
+    case "save_customer_field": {
+      const field = String(args.field ?? "").toUpperCase();
+      const value = String(args.value ?? "");
+      const lead = await prisma.lead.findUniqueOrThrow({ where: { id: ctx.leadId } });
+      if (field === "CPF") {
+        const { isValidCpf, encryptCpf, normalizeCpf, maskCpf } = await import("@/lib/cpf");
+        const ok = isValidCpf(value);
+        if (!ok) return { error: "cpf_invalido", cpf_valid: false };
+        const phone = lead.phone;
+        await prisma.customer.upsert({
+          where: { phone },
+          update: { documentCpf: maskCpf(normalizeCpf(value)), documentCpfEncrypted: encryptCpf(value) },
+          create: { phone, documentCpf: maskCpf(normalizeCpf(value)), documentCpfEncrypted: encryptCpf(value) },
+        });
+        return { ok: true, cpf_collected: true, cpf_valid: true };
+      }
+      const map: Record<string, object> = {
+        FULL_NAME: { name: value },
+        CITY: { city: value },
+        ADDRESS: { address: value },
+        CEP: { zipCode: value },
+        NEIGHBORHOOD: { neighborhood: value },
+      };
+      if (map[field]) await prisma.lead.update({ where: { id: ctx.leadId }, data: map[field] });
+      if (field === "EMAIL") {
+        await prisma.customer.upsert({
+          where: { phone: lead.phone },
+          update: { email: value },
+          create: { phone: lead.phone, email: value },
+        });
+      }
+      return { ok: true, field };
+    }
+    case "get_business_rule": {
+      const docs = await retrieveKnowledge(String(args.query), ["REGRAS_COMERCIAIS", "POLITICAS"]);
+      return { rules: docs.map((d) => ({ title: d.title, content: d.content.slice(0, 600) })) };
     }
     case "register_loss_reason": {
       await prisma.lead.update({

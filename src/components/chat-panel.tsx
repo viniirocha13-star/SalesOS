@@ -13,11 +13,13 @@ export function ChatPanel({
   initialMessages,
   providerHint,
   handoff,
+  onTurn,
 }: {
   conversationId: string;
   initialMessages: Msg[];
   providerHint: string;
   handoff: boolean;
+  onTurn?: () => void;
 }) {
   const [messages, setMessages] = useState(initialMessages);
   const [text, setText] = useState("");
@@ -45,6 +47,7 @@ export function ChatPanel({
       setMessages((m) => [...m, { id: crypto.randomUUID(), direction: "OUTBOUND", body: json.reply }]);
     }
     if (json.provider) setProvider(json.provider);
+    onTurn?.();
   }
 
   return (
@@ -80,6 +83,7 @@ export function ChatPanel({
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder={handoff ? "IA bloqueada nesta conversa" : "Mensagem do cliente..."}
+          data-testid="customer-message"
           disabled={handoff}
         />
         <Button onClick={send} disabled={loading || handoff} className="bg-orange-500 hover:bg-orange-600">

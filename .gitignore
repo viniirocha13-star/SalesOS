@@ -39,6 +39,7 @@ yarn-error.log*
 
 # uploaded offer books (originais)
 /uploads
+dump.rdb
 
 # vercel
 .vercel

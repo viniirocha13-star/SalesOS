@@ -52,6 +52,30 @@ test("login → Inbox → abrir conversa", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Lead" })).toBeVisible();
 });
 
+test("Laboratório: objeção de preço sem desconto inventado", async ({ page }) => {
+  await login(page);
+  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("link", { name: "Laboratório" }).click();
+  await page.getByRole("button", { name: "Nova conversa simulada" }).click();
+  await expect(page.getByText("Laboratório IA")).toBeVisible({ timeout: 20_000 });
+  await page.getByTestId("customer-message").fill("Quero internet em Caucaia.");
+  await page.getByRole("button", { name: /Enviar/i }).click();
+  await expect(page.getByText(/Mega|aprovad|cidade/i).first()).toBeVisible({ timeout: 20_000 });
+  await page.getByTestId("customer-message").fill("Rapaz, tá caro. A outra aqui é 80.");
+  await page.getByRole("button", { name: /Enviar/i }).click();
+  await expect(page.getByText(/faço por 80|desconto de R\$ ?80/i)).toHaveCount(0);
+  await expect(page.getByText("Laboratório IA")).toBeVisible();
+});
+
+test("Laboratório abre conversa", async ({ page }) => {
+  await login(page);
+  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("link", { name: "Laboratório" }).click();
+  await expect(page.getByRole("heading", { name: "Conversas" })).toBeVisible();
+  await page.getByRole("link", { name: /Maria Alves|SIMULATOR|WHATSAPP/ }).first().click();
+  await expect(page.getByText("Laboratório IA")).toBeVisible();
+});
+
 test("Inbox → assumir → composer humano → devolver para IA", async ({ page }) => {
   await login(page);
   await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });

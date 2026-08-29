@@ -29,7 +29,10 @@ vi.mock("@/lib/prisma", () => ({
     humanHandoff: { create: vi.fn(async () => ({})) },
     modelPrice: { findUnique: vi.fn(async () => null) },
     conversationMemory: { upsert: vi.fn(async () => ({})) },
-    lead: { findUnique: vi.fn(async () => conversation.lead) },
+    lead: { findUnique: vi.fn(async () => conversation.lead), update: vi.fn(async () => ({})) },
+    objection: { count: vi.fn(async () => 0) },
+    customerFact: { upsert: vi.fn(async () => ({})) },
+    commercialDecision: { create: vi.fn(async () => ({})) },
   },
 }));
 
@@ -63,6 +66,21 @@ vi.mock("@/ai/tools", () => ({
 }));
 
 vi.mock("@/events/bus", () => ({ emit: vi.fn(async () => {}) }));
+
+vi.mock("@/commercial/context", () => ({
+  buildCommercialContext: vi.fn(async () => ({
+    payload: { SalesStage: "NEW", CustomerFacts: {}, ForbiddenClaims: [] },
+    signals: { intent: "QUESTION", buyingIntent: "MEDIUM" },
+    strategy: "COMPARE_OFFERS",
+    ranking: { best_offer: { id: "o1" } },
+    objection: null,
+    discovery: { missing_critical_information: [] },
+  })),
+}));
+
+vi.mock("@/commercial/complexity-router", () => ({
+  routeComplexity: vi.fn(async () => ({ purpose: "SALES", reason: null })),
+}));
 
 describe("AISalesOrchestrator (LLM mock)", () => {
   beforeEach(() => {

@@ -2,8 +2,12 @@ import { getLlmProvider, type LlmMessage, type LlmResult, type LlmTool } from "@
 import { prisma } from "@/lib/prisma";
 import { aiModelFor } from "@/lib/ai-models";
 
-export async function createSalesResponse(input: { messages: LlmMessage[]; tools: LlmTool[] }): Promise<LlmResult> {
-  return getLlmProvider().complete({ ...input, purpose: "SALES" });
+export async function createSalesResponse(input: {
+  messages: LlmMessage[];
+  tools: LlmTool[];
+  purpose?: "SALES" | "COMPLEX";
+}): Promise<LlmResult> {
+  return getLlmProvider().complete({ ...input, purpose: input.purpose ?? "SALES" });
 }
 
 export async function createUtilityResponse(input: { messages: LlmMessage[]; tools?: LlmTool[] }): Promise<LlmResult> {

@@ -320,6 +320,7 @@ model Customer {
   id            String   @id @default(cuid())
   fullName      String?
   documentCpf   String?
+  documentCpfEncrypted String?
   email         String?
   phone         String    @unique
   birthDate     DateTime?
@@ -820,4 +821,57 @@ model ModelPrice {
   inputPerMTok Float
   outputPerMTok Float
   updatedAt    DateTime @updatedAt
+}
+
+model OfferPresentation {
+  id             String   @id @default(cuid())
+  conversationId String
+  offerId        String
+  snapshot       Json
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId])
+}
+
+model CommercialDecision {
+  id               String   @id @default(cuid())
+  conversationId   String
+  intent           String?
+  buyingIntent     String?
+  objection        String?
+  strategyLabel    String?
+  selectedOfferId  String?
+  toolCalls        Json?
+  confidence       Float?
+  escalationReason String?
+  model            String
+  latencyMs        Int?
+  inputTokens      Int?
+  outputTokens     Int?
+  estimatedCostUsd Float?
+  createdAt        DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model ComplexityEscalation {
+  id             String   @id @default(cuid())
+  conversationId String
+  fromModel      String
+  toModel        String
+  reason         String
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId])
+}
+
+model WorkflowExecution {
+  id             String   @id @default(cuid())
+  workflowId     String
+  conversationId String?
+  leadId         String?
+  status         String   @default("ACTIVE")
+  currentOrder   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

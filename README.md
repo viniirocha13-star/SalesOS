@@ -37,4 +37,6 @@ WhatsApp real: preencha as variáveis Meta no `.env` e aponte o webhook para `/a
 
 Qualidade: `npm run lint && npm run typecheck && npm run test && npm run build && npm run test:e2e`
 
-O E2E Playwright espera o servidor de produção (`npm run start` na porta 43147). Relatório da auditoria do núcleo: `docs/AUDIT.md`. Fase WhatsApp + OpenAI: `docs/PHASE-WHATSAPP.md` e `docs/WHATSAPP.md`.
+O E2E Playwright espera o servidor de produção (`npm run start` na porta 43147). Relatório da auditoria do núcleo: `docs/AUDIT.md`. Fase WhatsApp + OpenAI: `docs/PHASE-WHATSAPP.md` e `docs/WHATSAPP.md`. Fase comercial: `docs/PHASE-COMMERCIAL.md`.
+
+Modelos só via env: `AI_SALES_MODEL`, `AI_COMPLEX_MODEL`, `AI_UTILITY_MODEL`. Sem `OPENAI_API_KEY` o vendedor usa mock de desenvolvimento (não inventa desconto).

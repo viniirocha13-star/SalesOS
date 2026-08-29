@@ -33,7 +33,7 @@ export default async function ConversasPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Conversas</h1>
-          <p className="text-sm text-zinc-500">Simulador da Fase 1. WhatsApp Cloud API entra na Fase 2 com o mesmo provider.</p>
+          <p className="text-sm text-zinc-500">Laboratório: o modelo vende; o backend limita fatos. Sem roteiro de frases.</p>
         </div>
         <form action={startSimulator}>
           <Button className="bg-orange-500 hover:bg-orange-600">Nova conversa simulada</Button>

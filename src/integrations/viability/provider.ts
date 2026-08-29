@@ -31,7 +31,7 @@ export class InternalAuthorizedViabilityProvider implements ViabilityProvider {
         result: "INDETERMINADO",
         source: this.name,
         reliable: false,
-        details: { reason: "cidade_ausente" },
+        details: { reason: "cidade_ausente", state: "UNKNOWN" },
       };
     }
     const covered = this.coveredCities.has(city);
@@ -39,7 +39,7 @@ export class InternalAuthorizedViabilityProvider implements ViabilityProvider {
       result: covered ? "VIAVEL" : "INDETERMINADO",
       source: this.name,
       reliable: covered,
-      details: { city },
+      details: { city, state: covered ? "AVAILABLE" : "MANUAL_CHECK_REQUIRED" },
     };
   }
 }
@@ -53,7 +53,7 @@ export class ManualOperatorViabilityProvider implements ViabilityProvider {
       result: "INDETERMINADO",
       source: this.name,
       reliable: false,
-      details: { reason: "aguardando_consulta_manual" },
+      details: { reason: "aguardando_consulta_manual", state: "MANUAL_CHECK_REQUIRED" },
     };
   }
 }
