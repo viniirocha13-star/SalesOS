@@ -30,12 +30,12 @@ import type { Role } from "@prisma/client";
 
 const MAIN: { href: string; label: string; icon: typeof Bell; perm: string }[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, perm: "dashboard.view" },
+  { href: "/home", label: "Tarefas", icon: Inbox, perm: "operation.queue" },
   { href: "/inbox", label: "Inbox", icon: MessageCircle, perm: "conversations.view" },
   { href: "/leads", label: "Leads", icon: Users, perm: "leads.view" },
   { href: "/vendas", label: "Vendas", icon: ShoppingBag, perm: "sales.view" },
   { href: "/pos-venda", label: "Pós-venda", icon: ShoppingBag, perm: "sales.view" },
   { href: "/ofertas", label: "Ofertas", icon: Tags, perm: "offers.view" },
-  { href: "/home", label: "Tarefas", icon: Inbox, perm: "operation.queue" },
   { href: "/operacao", label: "Operação", icon: Inbox, perm: "operation.queue" },
   { href: "/conversas", label: "Laboratório", icon: Brain, perm: "conversations.simulate" },
   { href: "/conhecimento", label: "Books", icon: BookOpen, perm: "knowledge.view" },

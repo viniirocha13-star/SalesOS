@@ -5,6 +5,9 @@ import { LeadBadge } from "@/components/status-badge";
 import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import type { LeadStatus } from "@prisma/client";
+import { auth } from "@/auth";
+import { can } from "@/lib/rbac";
+import type { Role } from "@prisma/client";
 
 export default async function DashboardPage({
   searchParams,
@@ -12,7 +15,9 @@ export default async function DashboardPage({
   searchParams: Promise<{ forbidden?: string }>;
 }) {
   const params = await searchParams;
-  const [leads, qualified, preSales, sales, installed, spendAgg, funnel, recent] = await Promise.all([
+  const session = await auth();
+  const canTasks = session?.user ? can(session.user.role as Role, "operation.queue") : false;
+  const [leads, qualified, preSales, sales, installed, spendAgg, funnel, recent, launchQueue] = await Promise.all([
     prisma.lead.count(),
     prisma.lead.count({
       where: { status: { notIn: ["NOVO", "PERDIDO"] } },
@@ -23,6 +28,7 @@ export default async function DashboardPage({
     prisma.campaign.aggregate({ _sum: { spendCents: true } }),
     prisma.lead.groupBy({ by: ["status"], _count: true }),
     prisma.lead.findMany({ orderBy: { createdAt: "desc" }, take: 8, include: { campaign: true } }),
+    prisma.preSale.count({ where: { status: { in: ["PRONTA", "PENDENCIA", "EM_LANCAMENTO"] } } }),
   ]);
 
   const spend = spendAgg._sum.spendCents ?? 0;
@@ -58,6 +64,18 @@ export default async function DashboardPage({
         description="Do primeiro contato à instalação — sem planilha no meio."
         titleTestId="heading-dashboard"
       />
+      {canTasks && (
+        <Link href="/home" className="surface mb-6 block p-5 transition-transform hover:-translate-y-0.5">
+          <p className="text-[11px] font-semibold tracking-[0.14em] text-teal uppercase">Tarefas</p>
+          <p className="mt-1 text-lg font-semibold text-slate-900">Cliente enviou os dados — lançar no sistema</p>
+          <p className="mt-1 text-sm text-slate-500">
+            {launchQueue === 0
+              ? "Nenhum pedido na fila agora. Clique para abrir Tarefas."
+              : `${launchQueue} pedido${launchQueue === 1 ? "" : "s"} aguardando o operador.`}
+          </p>
+          <p className="mt-3 text-sm font-medium text-teal">Ir para Tarefas →</p>
+        </Link>
+      )}
       {params.forbidden && (
         <p className="mb-6 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-950">
           Você não tem permissão para a tela solicitada.
