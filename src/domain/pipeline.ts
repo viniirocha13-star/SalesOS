@@ -1,0 +1,41 @@
+import type { LeadStatus } from "@prisma/client";
+
+export const PIPELINE_ORDER: LeadStatus[] = [
+  "NOVO",
+  "EM_ATENDIMENTO_IA",
+  "QUALIFICANDO",
+  "CONSULTANDO_VIABILIDADE",
+  "OFERTA_APRESENTADA",
+  "NEGOCIANDO",
+  "ACEITE_COMERCIAL",
+  "COLETANDO_DADOS",
+  "PRONTO_PARA_LANCAMENTO",
+  "EM_LANCAMENTO",
+  "PENDENCIA",
+  "CADASTRO_APROVADO",
+  "CONTRATO",
+  "DOCUMENTACAO",
+  "AGUARDANDO_INSTALACAO",
+  "INSTALADO",
+  "PERDIDO",
+];
+
+export const PIPELINE_LABEL: Record<LeadStatus, string> = {
+  NOVO: "Novo",
+  EM_ATENDIMENTO_IA: "Atendimento IA",
+  QUALIFICANDO: "Qualificando",
+  CONSULTANDO_VIABILIDADE: "Viabilidade",
+  OFERTA_APRESENTADA: "Oferta apresentada",
+  NEGOCIANDO: "Negociando",
+  ACEITE_COMERCIAL: "Aceite comercial",
+  COLETANDO_DADOS: "Coletando dados",
+  PRONTO_PARA_LANCAMENTO: "Fila de lançamento",
+  EM_LANCAMENTO: "Em lançamento",
+  PENDENCIA: "Pendência",
+  CADASTRO_APROVADO: "Cadastro aprovado",
+  CONTRATO: "Contrato",
+  DOCUMENTACAO: "Documentação",
+  AGUARDANDO_INSTALACAO: "Aguardando instalação",
+  INSTALADO: "Instalado",
+  PERDIDO: "Perdido",
+};

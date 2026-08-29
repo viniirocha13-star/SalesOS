@@ -1,0 +1,552 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  OPERADOR
+  ANALISTA
+}
+
+enum LeadStatus {
+  NOVO
+  EM_ATENDIMENTO_IA
+  QUALIFICANDO
+  CONSULTANDO_VIABILIDADE
+  OFERTA_APRESENTADA
+  NEGOCIANDO
+  ACEITE_COMERCIAL
+  COLETANDO_DADOS
+  PRONTO_PARA_LANCAMENTO
+  EM_LANCAMENTO
+  PENDENCIA
+  CADASTRO_APROVADO
+  CONTRATO
+  DOCUMENTACAO
+  AGUARDANDO_INSTALACAO
+  INSTALADO
+  PERDIDO
+}
+
+enum LeadSource {
+  META
+  GOOGLE
+  INSTAGRAM
+  FACEBOOK
+  QR_CODE
+  LINK
+  ORGANICO
+  INDICACAO
+  OUTROS
+}
+
+enum OfferStatus {
+  DETECTADA
+  AGUARDANDO_APROVACAO
+  APROVADA
+  REJEITADA
+  EXPIRADA
+}
+
+enum KnowledgeType {
+  OFERTAS
+  FAQ
+  REGRAS_COMERCIAIS
+  PROCEDIMENTOS
+  OBJECOES
+  DOCUMENTOS
+  POLITICAS
+}
+
+enum ViabilityResult {
+  VIAVEL
+  NAO_VIAVEL
+  INDETERMINADO
+}
+
+enum PreSaleStatus {
+  RASCUNHO
+  PRONTA
+  EM_LANCAMENTO
+  APROVADA
+  PENDENCIA
+  REPROVADA
+}
+
+enum LaunchResult {
+  APROVADO
+  PENDENCIA
+  REPROVADO
+}
+
+enum ObjectionCategory {
+  PRECO
+  VAI_PENSAR
+  CONCORRENTE
+  FIDELIDADE
+  INSTALACAO
+  CONVERSAR_COM_FAMILIA
+  SEM_INTERESSE
+  JA_POSSUI_INTERNET
+  PORTABILIDADE
+  OUTROS
+}
+
+enum ConversationChannel {
+  WHATSAPP
+  SIMULATOR
+}
+
+enum ConversationStatus {
+  IA_ATIVA
+  HANDOFF_HUMANO
+  ENCERRADA
+}
+
+enum HandoffReason {
+  CLIENTE_SOLICITOU
+  IA_SEM_CONFIANCA
+  INFORMACAO_NAO_ENCONTRADA
+  RECLAMACAO
+  CASO_SENSIVEL
+  FALHA_VIABILIDADE
+  EXCECAO_COMERCIAL
+  FALHA_REPETIDA_IA
+}
+
+enum HandoffStatus {
+  ABERTO
+  EM_ATENDIMENTO
+  DEVOLVIDO_IA
+  ENCERRADO
+}
+
+enum DomainEventType {
+  LEAD_CREATED
+  MESSAGE_RECEIVED
+  VIABILITY_CHECKED
+  OFFER_PRESENTED
+  CUSTOMER_ACCEPTED
+  PRE_SALE_CREATED
+  SALE_REGISTERED
+  CONTRACT_PENDING
+  SALE_INSTALLED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageStatus {
+  RECEIVED
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role     @default(OPERADOR)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignedLeads     Lead[]           @relation("LeadOwner")
+  assignedPreSales   PreSale[]       @relation("PreSaleOwner")
+  auditLogs          AuditLog[]
+  humanHandoffs      HumanHandoff[]
+  assignedConversations Conversation[] @relation("ConversationOwner")
+}
+
+model Lead {
+  id               String     @id @default(cuid())
+  name             String?
+  phone            String
+  city             String?
+  neighborhood      String?
+  address          String?
+  zipCode          String?
+  latitude         Float?
+  longitude        Float?
+  origin           LeadSource @default(OUTROS)
+  source           String?
+  campaignId       String?
+  adset            String?
+  ad               String?
+  utmSource        String?
+  utmMedium        String?
+  utmCampaign      String?
+  utmContent       String?
+  productInterest  String?
+  status           LeadStatus @default(NOVO)
+  score            Int       @default(0)
+  ownerId          String?
+  customerId      String?
+  lostReason       String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  campaign       Campaign?         @relation(fields: [campaignId], references: [id])
+  owner          User?             @relation("LeadOwner", fields: [ownerId], references: [id])
+  customer       Customer?        @relation(fields: [customerId], references: [id])
+  statusHistory  LeadStatusHistory[]
+  conversations  Conversation[]
+  viabilityChecks ViabilityCheck[]
+  objections     Objection[]
+  preSales       PreSale[]
+  consents       Consent[]
+  aiExecutions   AIExecution[]
+
+  @@index([phone])
+  @@index([status])
+  @@index([campaignId])
+  @@index([city])
+}
+
+model LeadStatusHistory {
+  id         String     @id @default(cuid())
+  leadId     String
+  fromStatus LeadStatus?
+  toStatus   LeadStatus
+  reason     String?
+  actorId    String?
+  createdAt  DateTime   @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+}
+
+model Customer {
+  id            String   @id @default(cuid())
+  fullName      String?
+  documentCpf   String?
+  email         String?
+  phone         String    @unique
+  birthDate     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  leads    Lead[]
+  preSales PreSale[]
+}
+
+model Campaign {
+  id           String     @id @default(cuid())
+  name         String
+  channel      LeadSource
+  externalId   String?
+  spendCents   Int        @default(0)
+  active       Boolean    @default(true)
+  startedAt    DateTime?
+  endedAt      DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  leads Lead[]
+}
+
+model OfferBook {
+  id           String   @id @default(cuid())
+  originalName String
+  mimeType     String
+  storagePath  String
+  extractedText String? @db.Text
+  month        String?
+  importedById String?
+  createdAt    DateTime @default(now())
+
+  offers Offer[]
+}
+
+model Offer {
+  id                 String      @id @default(cuid())
+  name               String
+  category           String?
+  product            String?
+  speedMbps          Int?
+  priceCents         Int?
+  promotionalPriceCents Int?
+  futurePriceCents   Int?
+  promotionalPeriod String?
+  benefits           String[]
+  loyalty            String?
+  installation       String?
+  city               String?
+  region             String?
+  eligibility        String?
+  rules              String?     @db.Text
+  restrictions       String?    @db.Text
+  startsAt           DateTime?
+  endsAt             DateTime?
+  source             String?
+  bookId             String?
+  originalText       String?     @db.Text
+  status             OfferStatus @default(DETECTADA)
+  reviewNotes        String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  book     OfferBook? @relation(fields: [bookId], references: [id])
+  preSales PreSale[]
+
+  @@index([status])
+  @@index([city])
+}
+
+model KnowledgeDocument {
+  id          String        @id @default(cuid())
+  title       String
+  type        KnowledgeType
+  content     String        @db.Text
+  version     Int           @default(1)
+  active      Boolean       @default(true)
+  approved    Boolean       @default(false)
+  createdById String?
+  createdAt   DateTime      @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  versions KnowledgeVersion[]
+}
+
+model KnowledgeVersion {
+  id         String   @id @default(cuid())
+  documentId String
+  version    Int
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id            String             @id @default(cuid())
+  leadId        String
+  channel       ConversationChannel @default(SIMULATOR)
+  waConversationId String?
+  status        ConversationStatus  @default(IA_ATIVA)
+  ownerId       String?
+  lastMessageAt DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  lead     Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  owner    User?     @relation("ConversationOwner", fields: [ownerId], references: [id])
+  messages Message[]
+  handoffs HumanHandoff[]
+  aiExecutions AIExecution[]
+
+  @@index([leadId])
+}
+
+model Message {
+  id              String            @id @default(cuid())
+  conversationId  String
+  direction       MessageDirection
+  body            String            @db.Text
+  mediaUrl        String?
+  mediaType       String?
+  templateName    String?
+  waMessageId     String?           @unique
+  status          MessageStatus     @default(RECEIVED)
+  idempotencyKey  String?           @unique
+  metadata        Json?
+  createdAt       DateTime         @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+model ViabilityCheck {
+  id         String           @id @default(cuid())
+  leadId     String
+  address    String?
+  zipCode    String?
+  city       String?
+  neighborhood String?
+  latitude   Float?
+  longitude  Float?
+  result     ViabilityResult
+  source     String
+  details    Json?
+  createdAt  DateTime         @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+}
+
+model Objection {
+  id         String             @id @default(cuid())
+  leadId     String
+  category   ObjectionCategory
+  text       String             @db.Text
+  response   String?            @db.Text
+  result     String?
+  createdAt  DateTime           @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model ObjectionPlaybook {
+  id         String             @id @default(cuid())
+  category   ObjectionCategory
+  argument   String            @db.Text
+  active     Boolean           @default(true)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+}
+
+model PreSale {
+  id               String        @id @default(cuid())
+  leadId           String
+  offerId          String
+  customerId       String?
+  registrationData Json?
+  address          String?
+  viabilitySummary String?
+  consentsSnapshot Json?
+  aiSummary        String?       @db.Text
+  status           PreSaleStatus @default(PRONTA)
+  ownerId          String?
+  quoteNumber      String?
+  orderNumber      String?
+  launchResult     LaunchResult?
+  launchNotes      String?
+  queuedAt         DateTime      @default(now())
+  claimedAt        DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  lead     Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  offer    Offer     @relation(fields: [offerId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+  owner    User?     @relation("PreSaleOwner", fields: [ownerId], references: [id])
+  sale     Sale?
+
+  @@index([status])
+}
+
+model Sale {
+  id            String     @id @default(cuid())
+  preSaleId     String      @unique
+  leadId        String
+  campaignId    String?
+  offerId       String
+  ticketCents   Int?
+  installedAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  preSale PreSale     @relation(fields: [preSaleId], references: [id])
+  events  SaleEvent[]
+}
+
+model SaleEvent {
+  id        String          @id @default(cuid())
+  saleId    String
+  type      DomainEventType
+  payload   Json?
+  createdAt DateTime        @default(now())
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+}
+
+model DomainEvent {
+  id          String          @id @default(cuid())
+  type        DomainEventType
+  aggregateId String
+  payload     Json
+  processedAt DateTime?
+  createdAt   DateTime        @default(now())
+
+  @@index([type])
+}
+
+model HumanHandoff {
+  id             String        @id @default(cuid())
+  conversationId String
+  reason         HandoffReason
+  notes          String?
+  status         HandoffStatus @default(ABERTO)
+  assignedToId   String?
+  createdAt      DateTime      @default(now())
+  resolvedAt     DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  assignedTo   User?         @relation(fields: [assignedToId], references: [id])
+}
+
+model Consent {
+  id          String   @id @default(cuid())
+  leadId      String
+  type        String
+  granted     Boolean
+  text        String
+  createdAt   DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entity     String
+  entityId   String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime  @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model AIExecution {
+  id              String   @id @default(cuid())
+  conversationId  String?
+  leadId          String?
+  model           String
+  intent          String?
+  toolName        String?
+  offerId         String?
+  knowledgeSource String?
+  confidence      Float?
+  result          String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  conversation Conversation? @relation(fields: [conversationId], references: [id])
+  lead         Lead?         @relation(fields: [leadId], references: [id])
+
+  @@index([conversationId])
+  @@index([leadId])
+}
+
+model RetentionPolicy {
+  id         String   @id @default(cuid())
+  entity     String    @unique
+  days       Int
+  updatedAt  DateTime  @updatedAt
+}
+
+model WhatsAppLog {
+  id        String   @id @default(cuid())
+  direction String
+  payload   Json
+  createdAt DateTime @default(now())
+}
