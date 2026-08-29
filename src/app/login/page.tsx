@@ -1,23 +1,33 @@
 import { Suspense } from "react";
 import { LoginForm } from "@/components/login-form";
+import { Hexagon } from "lucide-react";
 
 export default function LoginPage() {
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="relative hidden flex-col justify-between bg-espresso p-12 text-[#f6efe6] lg:flex">
+    <div className="grid min-h-screen bg-paper lg:grid-cols-2">
+      <div className="relative hidden flex-col justify-between p-12 lg:flex">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-teal text-white">
+            <Hexagon className="size-5" />
+          </span>
+          <div>
+            <div className="text-[15px] font-semibold">Sales OS</div>
+            <div className="text-[11px] text-slate-400">Brisa Sales</div>
+          </div>
+        </div>
         <div>
-          <p className="text-[11px] tracking-[0.32em] text-terracotta uppercase">Brisanet</p>
-          <p className="font-heading mt-4 text-5xl leading-[1.05] text-[#faf4ea]">
-            Vender bem
+          <p className="text-4xl font-semibold tracking-tight text-slate-900">
+            Inbox, fila e conversa
             <br />
-            começa na conversa.
+            no mesmo lugar.
+          </p>
+          <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-slate-500">
+            A IA conversa. O time vê o que chegou, o que espera resposta e o que precisa de humano.
           </p>
         </div>
-        <p className="max-w-sm text-[15px] leading-relaxed text-[#f6efe6]/55">
-          O modelo conversa. O time decide o que é verdade. Sem roteiro, sem desconto inventado.
-        </p>
+        <p className="text-sm text-slate-400">Sem roteiro. Sem desconto inventado.</p>
       </div>
-      <div className="flex items-center justify-center p-6 md:p-12">
+      <div className="flex items-center justify-center bg-white p-6 md:p-12">
         <Suspense>
           <LoginForm />
         </Suspense>

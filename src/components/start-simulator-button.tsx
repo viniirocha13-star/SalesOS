@@ -29,7 +29,7 @@ export function StartSimulatorButton() {
         data-testid="new-simulator"
         onClick={start}
         disabled={busy}
-        className="h-11 rounded-full px-5"
+        className="h-11 rounded-xl px-5"
       >
         {busy ? "Abrindo…" : "Nova conversa simulada"}
       </Button>

@@ -67,23 +67,23 @@ export default async function DashboardPage({
         {kpis.map((k) => (
           <div key={k.label} className="surface px-4 py-4">
             <p className="text-[11px] tracking-[0.14em] text-ink/40 uppercase">{k.label}</p>
-            <p className="font-heading mt-2 text-2xl text-ink">{k.value}</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{k.value}</p>
           </div>
         ))}
       </div>
       <div className="surface mt-6 p-5">
-        <h2 className="font-heading text-2xl">Funil</h2>
+        <h2 className="text-lg font-semibold">Funil</h2>
         <div className="mt-4 flex flex-wrap gap-2">
           {PIPELINE_ORDER.filter((s) => s !== "PERDIDO").map((status) => (
             <div key={status} className="min-w-28 rounded-2xl bg-[#efe6d9]/70 px-4 py-3">
-              <div className="font-heading text-3xl">{funnelMap[status] ?? 0}</div>
+              <div className="text-3xl font-semibold">{funnelMap[status] ?? 0}</div>
               <div className="mt-1 text-[12px] text-ink/50">{PIPELINE_LABEL[status as LeadStatus]}</div>
             </div>
           ))}
         </div>
       </div>
       <div className="surface mt-6 p-5">
-        <h2 className="font-heading text-2xl">Leads recentes</h2>
+        <h2 className="text-lg font-semibold">Leads recentes</h2>
         <div className="mt-4 space-y-2">
           {!recent.length && <p className="text-sm text-ink/50">Ainda não há leads neste período.</p>}
           {recent.map((lead) => (

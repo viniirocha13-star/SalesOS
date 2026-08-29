@@ -21,9 +21,9 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-md">
-      <p className="mb-2 text-[11px] tracking-[0.22em] text-terracotta uppercase lg:hidden">Brisanet</p>
-      <h1 className="font-heading text-4xl text-ink">Entrar no Sales OS</h1>
-      <p className="mt-2 mb-8 text-[15px] text-ink/55">Acesso restrito a operadores e gestores comerciais.</p>
+      <p className="mb-2 text-[11px] font-semibold tracking-[0.16em] text-teal uppercase lg:hidden">Sales OS</p>
+      <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Entrar no Sales OS</h1>
+      <p className="mt-2 mb-8 text-[15px] text-slate-500">Acesso restrito a operadores e gestores comerciais.</p>
       <form
         method="post"
         action="/login"
@@ -60,7 +60,7 @@ export function LoginForm() {
             defaultValue="ursula.b@example.com"
             autoComplete="username"
             aria-label="E-mail"
-            className="h-12 rounded-2xl bg-cream"
+            className="h-12 rounded-xl bg-slate-50"
           />
         </div>
         <div className="space-y-2">
@@ -74,7 +74,7 @@ export function LoginForm() {
             defaultValue="Brisa@2026"
             autoComplete="current-password"
             aria-label="Senha"
-            className="h-12 rounded-2xl bg-cream"
+            className="h-12 rounded-xl bg-slate-50"
           />
         </div>
         {error && (
@@ -85,7 +85,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={!ready || loading}
-          className="h-12 w-full rounded-full bg-terracotta text-[15px] font-medium text-white transition-colors hover:bg-[#a84c1d] disabled:opacity-60"
+          className="h-12 w-full rounded-xl bg-teal text-[15px] font-medium text-white transition-colors hover:bg-[#0d8a77] disabled:opacity-60"
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>
