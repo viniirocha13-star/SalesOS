@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { createPreSale } from "@/domain/presale";
 
 const FIELD_LABEL: Record<string, string> = {
   FULL_NAME: "Nome completo",
@@ -18,10 +19,12 @@ export async function getLaunchSnapshot(leadId: string) {
       preSales: { include: { offer: true }, orderBy: { createdAt: "desc" }, take: 5 },
     },
   });
+  const customer =
+    lead.customer ?? (await prisma.customer.findUnique({ where: { phone: lead.phone } }));
   const defs = await prisma.requiredFieldDefinition.findMany({ where: { productType: "fibra", required: true } });
   const have: Record<string, boolean> = {
-    FULL_NAME: Boolean(lead.name || lead.customer?.fullName),
-    CPF: Boolean(lead.customer?.documentCpf || lead.customer?.documentCpfEncrypted),
+    FULL_NAME: Boolean(lead.name || customer?.fullName),
+    CPF: Boolean(customer?.documentCpf || customer?.documentCpfEncrypted),
     PHONE: Boolean(lead.phone),
     CITY: Boolean(lead.city),
     ADDRESS: Boolean(lead.address),
@@ -56,4 +59,19 @@ export async function getLaunchSnapshot(leadId: string) {
     offerId: acceptance?.offerId ?? queued?.offerId ?? null,
     leadName: lead.name,
   };
+}
+
+/** Cliente enviou os dados do plano → entra na fila. Só o operador lança no sistema. */
+export async function enqueueLaunchIfCustomerReady(leadId: string) {
+  const snap = await getLaunchSnapshot(leadId);
+  if (snap.preSaleId) return { preSaleId: snap.preSaleId, created: false };
+  if (!snap.accepted || !snap.dataComplete || !snap.offerId) return { preSaleId: null, created: false };
+  const lead = await prisma.lead.findUniqueOrThrow({ where: { id: leadId } });
+  const preSale = await createPreSale({
+    leadId,
+    offerId: snap.offerId,
+    address: lead.address ?? undefined,
+    aiSummary: "Cliente enviou os dados do plano. Aguardando o operador lançar no sistema.",
+  });
+  return { preSaleId: preSale.id, created: true };
 }

@@ -34,6 +34,7 @@ export function LaunchForm({ preSaleId }: { preSaleId: string }) {
 
   return (
     <div className="space-y-3 rounded-xl border bg-white p-4">
+      <p className="text-sm font-medium">Lançar no sistema o que o cliente enviou</p>
       <div className="space-y-1">
         <Label>Número do orçamento</Label>
         <Input value={quoteNumber} onChange={(e) => setQuote(e.target.value)} />

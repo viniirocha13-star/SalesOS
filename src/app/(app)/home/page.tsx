@@ -26,7 +26,7 @@ export default async function HomeOperadorPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader kicker="Operação" title="Agora" description="Quando a IA fecha a negociação e pede os dados do plano, o pedido aparece aqui para lançar." />
+      <PageHeader kicker="Operação" title="Agora" description="O cliente envia os dados. O operador lança no sistema." />
       <div className="grid gap-4 md:grid-cols-3">
         <Link href="/operacao" className="surface block p-6 transition-transform hover:-translate-y-0.5">
           <p className="text-[12px] tracking-[0.14em] text-ink/40 uppercase">Fila de lançamento</p>
@@ -43,28 +43,28 @@ export default async function HomeOperadorPage() {
       </div>
 
       <section>
-        <h2 className="text-lg font-semibold">Lançar pedido</h2>
-        <p className="mt-1 text-sm text-slate-500">IA concluiu a venda e coletou os dados. Operador lança no sistema corporativo.</p>
+        <h2 className="text-lg font-semibold">Lançar no sistema</h2>
+        <p className="mt-1 text-sm text-slate-500">Quando o cliente manda nome, CPF, endereço e demais dados do plano, o card entra aqui.</p>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           {ready.map((item) => (
             <Link key={item.id} href={`/operacao/${item.id}`} className="surface block p-5 hover:border-teal">
-              <p className="text-[11px] font-semibold tracking-[0.12em] text-teal uppercase">Pronto para lançar</p>
+              <p className="text-[11px] font-semibold tracking-[0.12em] text-teal uppercase">Cliente enviou os dados</p>
               <p className="mt-2 text-lg font-medium">{item.lead.name ?? item.lead.phone}</p>
               <p className="text-sm text-slate-500">
                 {item.offer.name} · {formatBRL(item.offer.promotionalPriceCents ?? item.offer.priceCents)}
               </p>
-              <p className="mt-3 text-sm font-medium text-teal">Abrir lançamento →</p>
+              <p className="mt-3 text-sm font-medium text-teal">Lançar no sistema →</p>
             </Link>
           ))}
           {collecting.map((lead) => (
             <Link key={lead.id} href={`/leads/${lead.id}`} className="surface block p-5">
-              <p className="text-[11px] font-semibold tracking-[0.12em] text-amber-700 uppercase">IA pedindo dados</p>
+              <p className="text-[11px] font-semibold tracking-[0.12em] text-amber-700 uppercase">Aguardando dados do cliente</p>
               <p className="mt-2 text-lg font-medium">{lead.name ?? lead.phone}</p>
-              <p className="text-sm text-slate-500">Negociação encerrada. Acompanhe a coleta no Inbox.</p>
+              <p className="text-sm text-slate-500">Ainda faltam dados. Acompanhe no Inbox.</p>
             </Link>
           ))}
           {!ready.length && !collecting.length && (
-            <p className="surface p-5 text-sm text-slate-500">Nenhum pedido nesta etapa. Quando a IA pedir os dados do plano, o card aparece aqui.</p>
+            <p className="surface p-5 text-sm text-slate-500">Nada para lançar. Assim que o cliente enviar os dados, o card aparece aqui.</p>
           )}
         </div>
       </section>

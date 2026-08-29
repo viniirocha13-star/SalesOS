@@ -510,7 +510,9 @@ export async function runTool(
           create: { phone: lead.phone, email: value },
         });
       }
-      return { ok: true, field };
+      const { enqueueLaunchIfCustomerReady } = await import("@/domain/launch-ready");
+      const queued = await enqueueLaunchIfCustomerReady(ctx.leadId);
+      return { ok: true, field, ready_for_operator_launch: queued.created || Boolean(queued.preSaleId) };
     }
     case "get_business_rule": {
       const docs = await retrieveKnowledge(String(args.query), ["REGRAS_COMERCIAIS", "POLITICAS"]);

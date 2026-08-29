@@ -16,7 +16,7 @@ export default async function OperacaoPage() {
       <PageHeader
         kicker="Fila"
         title="Operação · Fila de lançamento"
-        description="Pré-vendas prontas para o lançamento no sistema corporativo."
+        description="O cliente já enviou os dados. O operador lança o pedido no sistema."
       />
       <div className="surface overflow-x-auto">
         <table className="data-table">

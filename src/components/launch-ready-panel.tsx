@@ -49,9 +49,9 @@ export function LaunchReadyPanel({ launch, leadId }: { launch: LaunchInfo; leadI
       <p className="text-[11px] font-semibold tracking-[0.12em] text-teal uppercase">Lançar pedido</p>
       {launch.offerName && <p className="mt-1 text-sm font-medium">{launch.offerName}</p>}
       <p className="mt-1 text-xs text-slate-500">
-        {launch.phase === "collecting" && "A IA pediu os dados do plano. Acompanhe o que já chegou."}
-        {launch.phase === "ready" && "Dados completos. Operador pode lançar o pedido."}
-        {launch.phase === "queued" && "Pré-venda na fila. Abra para lançar no sistema."}
+        {launch.phase === "collecting" && "Aguardando o cliente enviar os dados do plano."}
+        {launch.phase === "ready" && "Cliente enviou os dados. Lance no sistema."}
+        {launch.phase === "queued" && "Cliente enviou os dados. Lance no sistema."}
       </p>
       <ul className="mt-3 space-y-1.5">
         {launch.fields.map((f) => (
@@ -64,14 +64,14 @@ export function LaunchReadyPanel({ launch, leadId }: { launch: LaunchInfo; leadI
       <div className="mt-4">
         {launch.preSaleId ? (
           <Button className="w-full" onClick={() => openLaunch(launch.preSaleId!)}>
-            Lançar pedido
+            Lançar no sistema
           </Button>
         ) : launch.phase === "ready" ? (
           <Button className="w-full" disabled={busy} onClick={() => void prepare()}>
-            {busy ? "Preparando..." : "Abrir lançamento"}
+            {busy ? "Abrindo..." : "Lançar no sistema"}
           </Button>
         ) : (
-          <p className="text-xs text-slate-400">Quando a IA terminar a coleta, o botão de lançar aparece aqui.</p>
+          <p className="text-xs text-slate-400">O botão aparece quando o cliente terminar de enviar os dados.</p>
         )}
       </div>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
