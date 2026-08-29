@@ -10,6 +10,9 @@ test("GET /api/health não depende de OpenAI/Meta", async ({ request }) => {
   expect(typeof body.version).toBe("string");
   expect(body.openai === "CONNECTED" || body.openai === "NOT_CONFIGURED").toBeTruthy();
   expect(body.whatsapp === "CONNECTED" || body.whatsapp === "NOT_CONFIGURED").toBeTruthy();
+  expect(["up", "down"]).toContain(body.database);
+  expect(["up", "down", "not_configured"]).toContain(body.redis);
+  expect(["ONLINE", "OFFLINE"]).toContain(body.worker);
 });
 
 test("login abre fora do Preview", async ({ page }) => {

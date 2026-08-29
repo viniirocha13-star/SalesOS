@@ -6,7 +6,7 @@ export default async function HomeOperadorPage() {
   const [queue, human, mine] = await Promise.all([
     prisma.preSale.count({ where: { status: { in: ["PRONTA", "PENDENCIA"] } } }),
     prisma.conversation.count({ where: { aiEnabled: false, status: "HANDOFF_HUMANO" } }),
-    prisma.conversation.count({ where: { aiEnabled: false } }),
+    prisma.conversation.count({ where: { aiEnabled: false, ownerId: { not: null } } }),
   ]);
   return (
     <div>

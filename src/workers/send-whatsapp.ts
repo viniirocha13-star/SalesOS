@@ -17,7 +17,7 @@ export async function sendWhatsAppMessage(messageId: string) {
     return;
   }
   const policy = canSendFreeform(message.conversation.lastInboundAt);
-  if (!policy.freeform) {
+  if (!policy.freeform && !message.templateName) {
     await prisma.message.update({
       where: { id: messageId },
       data: { status: "FAILED", metadata: { reason: "session_window_expired" } },
@@ -27,7 +27,9 @@ export async function sendWhatsAppMessage(messageId: string) {
   }
   try {
     const wa = getWhatsAppProvider();
-    const sent = await wa.sendText(message.conversation.lead.phone, message.body);
+    const sent = message.templateName && !policy.freeform
+      ? await wa.sendTemplate(message.conversation.lead.phone, message.templateName, [])
+      : await wa.sendText(message.conversation.lead.phone, message.body);
     await prisma.message.update({
       where: { id: messageId },
       data: {

@@ -2,9 +2,10 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { formatDateTime } from "@/lib/format";
+import { collectOpsStatus } from "@/lib/ops-status";
 
 export default async function PosVendaPage() {
-  const [executions, followUps, notices] = await Promise.all([
+  const [executions, followUps, notices, ops] = await Promise.all([
     prisma.workflowExecution.findMany({
       orderBy: { updatedAt: "desc" },
       take: 40,
@@ -17,6 +18,7 @@ export default async function PosVendaPage() {
       orderBy: { createdAt: "desc" },
       take: 20,
     }),
+    collectOpsStatus(),
   ]);
 
   const workflowIds = [...new Set(executions.map((e) => e.workflowId))];
@@ -36,6 +38,12 @@ export default async function PosVendaPage() {
         title="Pós-venda"
         description="Workflow após aprovação do pedido, follow-ups e avisos. Sem template aprovado, nada é inventado."
       />
+
+      {ops.worker !== "ONLINE" && (
+        <p className="surface p-4 text-sm text-amber-800">
+          WORKER offline. Follow-ups e o ticker de pós-venda só rodam em `npm run dev:worker`. O WEB pode estar saudável.
+        </p>
+      )}
 
       <section className="surface overflow-x-auto">
         <h2 className="font-heading px-4 pt-4 text-lg">Workflows</h2>
@@ -122,6 +130,14 @@ export default async function PosVendaPage() {
           {notices.map((n) => (
             <p key={n.id} className="rounded-lg bg-amber-50 p-3">
               <span className="font-medium">{n.title}</span> — {n.body}
+              {n.href ? (
+                <>
+                  {" "}
+                  <Link className="text-teal underline" href={n.href}>
+                    abrir
+                  </Link>
+                </>
+              ) : null}
             </p>
           ))}
           {!notices.length && <p className="text-ink/50">Nenhum aviso. Integrações ausentes não geram falha de pós-venda silenciosa.</p>}

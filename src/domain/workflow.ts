@@ -16,6 +16,12 @@ export async function startWorkflow(name: string, conversationId?: string, leadI
     include: { steps: { orderBy: { order: "asc" } } },
   });
   if (!workflow) return null;
+  if (conversationId) {
+    const existing = await prisma.workflowExecution.findFirst({
+      where: { conversationId, status: "ACTIVE" },
+    });
+    if (existing) return existing;
+  }
   return prisma.workflowExecution.create({
     data: {
       workflowId: workflow.id,
@@ -28,10 +34,15 @@ export async function startWorkflow(name: string, conversationId?: string, leadI
 }
 
 export async function getWorkflowState(conversationId: string) {
-  const execution = await prisma.workflowExecution.findFirst({
-    where: { conversationId },
-    orderBy: { createdAt: "desc" },
-  });
+  const execution =
+    (await prisma.workflowExecution.findFirst({
+      where: { conversationId, status: "ACTIVE" },
+      orderBy: { createdAt: "desc" },
+    })) ??
+    (await prisma.workflowExecution.findFirst({
+      where: { conversationId },
+      orderBy: { createdAt: "desc" },
+    }));
   if (!execution) return null;
   const workflow = await prisma.workflow.findUnique({
     where: { id: execution.workflowId },

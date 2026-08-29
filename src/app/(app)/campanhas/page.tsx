@@ -24,6 +24,13 @@ export default async function CampanhasPage() {
             </tr>
           </thead>
           <tbody>
+            {!campaigns.length && (
+              <tr>
+                <td className="p-6 text-ink/50" colSpan={4}>
+                  Nenhuma campanha cadastrada. Ads externos não entram neste marco.
+                </td>
+              </tr>
+            )}
             {campaigns.map((c) => (
               <tr key={c.id} className="border-t">
                 <td className="p-3 font-medium">{c.name}</td>

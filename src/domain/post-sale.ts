@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { enqueueJob } from "@/workers/queue";
-import { JOB } from "@/workers/jobs";
+import { enqueueSendWhatsApp } from "@/workers/queue";
 import { advanceWorkflow, getWorkflowState } from "@/domain/workflow";
 import { logError, logInfo } from "@/lib/logger";
 
@@ -20,6 +19,16 @@ export function shouldCancelFollowUp(lastInboundAt: Date | null | undefined, sen
 export function followUpDelayMinutes() {
   const n = Number(process.env.FOLLOWUP_DELAY_MINUTES ?? 60);
   return Number.isFinite(n) && n > 0 ? n : 60;
+}
+
+export function nextFollowUpPatch(attempts: number, maxAttempts: number, now: Date, delayMinutes: number) {
+  const done = attempts >= maxAttempts;
+  return {
+    attempts,
+    sentAt: done ? now : null,
+    cancelled: done,
+    dueAt: done ? undefined : new Date(now.getTime() + delayMinutes * 60_000),
+  };
 }
 
 async function notifyOps(title: string, body: string, href = "/pos-venda") {
@@ -56,7 +65,7 @@ async function sendApprovedTemplate(conversationId: string, templateName: string
       metadata: { source: "post_sale_workflow" },
     },
   });
-  await enqueueJob(JOB.SEND_WHATSAPP_MESSAGE, { messageId: message.id });
+  await enqueueSendWhatsApp(message.id);
   logInfo("post_sale.template_queued", { conversationId, templateName: tpl.name, messageId: message.id });
   return { sent: true as const, messageId: message.id };
 }
@@ -115,10 +124,14 @@ export async function progressApprovedSaleWorkflow(conversationId: string, opts?
       await advanceWorkflow(state.executionId);
       return getWorkflowState(conversationId);
     }
-    if (step.type === "WAIT_CUSTOMER") {
+    if (step.type === "WAIT_CUSTOMER" || step.type === "REQUEST_DATA" || step.type === "REQUEST_DOCUMENT") {
       return state;
     }
-    await advanceWorkflow(state.executionId);
+    await notifyOps(
+      "Passo de workflow sem handler",
+      `Tipo ${step.type} não é executado automaticamente. Operação deve avançar manualmente.`,
+    );
+    return state;
   }
   return getWorkflowState(conversationId);
 }
@@ -156,9 +169,15 @@ export async function processDueFollowUps(now = new Date()) {
         await notifyOps("Follow-up pendente", `Cliente sem resposta no estágio ${item.stage}.`, "/inbox");
       }
 
+      const patch = nextFollowUpPatch(attempts, item.maxAttempts, now, item.delayMinutes);
       await prisma.followUp.update({
         where: { id: item.id },
-        data: { attempts, sentAt: now, cancelled: attempts >= item.maxAttempts },
+        data: {
+          attempts: patch.attempts,
+          sentAt: patch.sentAt,
+          cancelled: patch.cancelled,
+          ...(patch.dueAt ? { dueAt: patch.dueAt } : {}),
+        },
       });
     } catch (error) {
       logError("post_sale.followup_failed", { id: item.id, message: String(error) });

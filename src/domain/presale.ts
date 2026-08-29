@@ -67,6 +67,14 @@ export async function applyLaunchResult(input: {
   orderNumber?: string;
   notes?: string;
 }) {
+  const current = await prisma.preSale.findUniqueOrThrow({
+    where: { id: input.preSaleId },
+    include: { lead: true, offer: true, sale: true },
+  });
+  if (input.result === "APROVADO" && current.sale) {
+    return current;
+  }
+
   const preSale = await prisma.preSale.update({
     where: { id: input.preSaleId },
     data: {

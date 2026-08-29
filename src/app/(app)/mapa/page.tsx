@@ -31,6 +31,9 @@ export default async function MapaPage() {
       <p className="mt-2 text-sm text-ink/50">
         Localização aproximada para inteligência de cobertura. Sem exposição de endereço completo no mapa. Fase 3 aprofundará camadas de calor.
       </p>
+      {!points.length && (
+        <p className="text-sm text-ink/50">Nenhum lead com coordenada. O mapa não inventa endereço.</p>
+      )}
       <div className="relative h-[480px] overflow-hidden rounded-3xl border border-[#e0d5c6] bg-[#efe6d9]">
         <div className="absolute inset-6 rounded-lg border border-dashed border-emerald-700/30" />
         {points.map((p) => {

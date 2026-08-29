@@ -8,6 +8,9 @@ async function main() {
   await prisma.commercialDecision.deleteMany();
   await prisma.complexityEscalation.deleteMany();
   await prisma.offerPresentation.deleteMany();
+  await prisma.followUp.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.whatsAppTemplate.deleteMany();
   await prisma.workflowExecution.deleteMany();
   await prisma.workflowStep.deleteMany();
   await prisma.workflow.deleteMany();

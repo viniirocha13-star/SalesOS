@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { approvedTemplateBody, followUpDelayMinutes, shouldCancelFollowUp } from "@/domain/post-sale";
+import { approvedTemplateBody, followUpDelayMinutes, nextFollowUpPatch, shouldCancelFollowUp } from "@/domain/post-sale";
 
 describe("Templates de pós-venda", () => {
   it("só envia texto aprovado no template", () => {
@@ -24,5 +24,17 @@ describe("Follow-up", () => {
     process.env.FOLLOWUP_DELAY_MINUTES = "15";
     expect(followUpDelayMinutes()).toBe(15);
     process.env.FOLLOWUP_DELAY_MINUTES = prev;
+  });
+
+  it("reagenda tentativa 1 e encerra na última", () => {
+    const now = new Date("2026-08-29T12:00:00.000Z");
+    const mid = nextFollowUpPatch(1, 2, now, 60);
+    expect(mid.sentAt).toBeNull();
+    expect(mid.cancelled).toBe(false);
+    expect(mid.dueAt?.getTime()).toBe(now.getTime() + 60 * 60_000);
+    const last = nextFollowUpPatch(2, 2, now, 60);
+    expect(last.sentAt).toEqual(now);
+    expect(last.cancelled).toBe(true);
+    expect(last.dueAt).toBeUndefined();
   });
 });

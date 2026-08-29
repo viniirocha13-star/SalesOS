@@ -15,6 +15,7 @@ export default async function RelatoriosPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <section className="rounded-xl border bg-white p-4">
           <h2 className="mb-2 font-medium">Leads por cidade</h2>
+          {!byCity.length && <p className="text-sm text-ink/50">Sem leads ainda.</p>}
           {byCity.map((r) => (
             <div key={r.city ?? "x"} className="flex justify-between text-sm">
               <span>{r.city ?? "sem cidade"}</span>
@@ -24,6 +25,7 @@ export default async function RelatoriosPage() {
         </section>
         <section className="rounded-xl border bg-white p-4">
           <h2 className="mb-2 font-medium">Leads por canal</h2>
+          {!byOrigin.length && <p className="text-sm text-ink/50">Sem origem registrada.</p>}
           {byOrigin.map((r) => (
             <div key={r.origin} className="flex justify-between text-sm">
               <span>{r.origin}</span>
@@ -33,6 +35,7 @@ export default async function RelatoriosPage() {
         </section>
         <section className="rounded-xl border bg-white p-4 md:col-span-2">
           <h2 className="mb-2 font-medium">Pré-vendas por oferta</h2>
+          {!offers.length && <p className="text-sm text-ink/50">Nenhuma pré-venda lançada.</p>}
           {offers.map((o) => (
             <div key={o.offerId} className="flex justify-between text-sm">
               <span>{offerNames.find((n) => n.id === o.offerId)?.name}</span>

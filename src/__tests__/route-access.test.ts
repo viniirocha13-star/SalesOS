@@ -13,6 +13,17 @@ describe("RBAC por URL", () => {
   it("operador acessa fila e inbox, não admin", () => {
     expect(canAccessPath("OPERADOR", "/operacao")).toBe(true);
     expect(canAccessPath("OPERADOR", "/inbox")).toBe(true);
+    expect(canAccessPath("OPERADOR", "/pos-venda")).toBe(true);
     expect(canAccessPath("OPERADOR", "/admin")).toBe(false);
+  });
+
+  it("analista não acessa home nem laboratório", () => {
+    expect(canAccessPath("ANALISTA", "/home")).toBe(false);
+    expect(canAccessPath("ANALISTA", "/conversas")).toBe(false);
+    expect(canAccessPath("ANALISTA", "/pos-venda")).toBe(true);
+  });
+
+  it("supervisor acessa diagnóstico, não é tratado como deslogado", () => {
+    expect(canAccessPath("SUPERVISOR", "/admin/diagnostico")).toBe(true);
   });
 });

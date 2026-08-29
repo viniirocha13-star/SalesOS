@@ -2,8 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { formatDateTime } from "@/lib/format";
 import { UserForm } from "@/components/user-form";
 import { PageHeader } from "@/components/page-header";
+import { auth } from "@/auth";
+import { can } from "@/lib/rbac";
+import type { Role } from "@prisma/client";
 
 export default async function AdminPage() {
+  const session = await auth();
+  const canUsers = session?.user ? can(session.user.role as Role, "admin.users") : false;
   const [users, audits] = await Promise.all([
     prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.auditLog.findMany({ take: 30, orderBy: { createdAt: "desc" }, include: { actor: true } }),
@@ -21,7 +26,7 @@ export default async function AdminPage() {
       </section>
       <section className="surface p-5">
         <h2 className="font-heading mb-3 text-xl">Usuários e RBAC</h2>
-        <UserForm />
+        {canUsers ? <UserForm /> : <p className="text-sm text-ink/50">Somente admin cria usuários.</p>}
         <table className="mt-4 w-full text-sm">
           <thead className="text-left text-xs text-zinc-500">
             <tr>
