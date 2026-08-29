@@ -107,6 +107,11 @@ export function startInboundWorker() {
     const worker = new Worker(
       "wa-inbound",
       async (job) => {
+        if (job.name === JOB.PROCESS_POST_SALE_TICK) {
+          const { runPostSaleTick } = await import("@/domain/post-sale");
+          await runPostSaleTick();
+          return;
+        }
         if (job.name === JOB.PROCESS_INBOUND_WHATSAPP_MESSAGE) {
           const { processWhatsAppEvent } = await import("@/workers/process-inbound");
           await processWhatsAppEvent(job.data.providerEventId);

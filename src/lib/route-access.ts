@@ -7,6 +7,7 @@ const PREFIXES: { prefix: string; permission: string }[] = [
   { prefix: "/conversas", permission: "conversations.simulate" },
   { prefix: "/leads", permission: "leads.view" },
   { prefix: "/vendas", permission: "sales.view" },
+  { prefix: "/pos-venda", permission: "sales.view" },
   { prefix: "/operacao", permission: "operation.queue" },
   { prefix: "/campanhas", permission: "campaigns.view" },
   { prefix: "/ofertas", permission: "offers.view" },

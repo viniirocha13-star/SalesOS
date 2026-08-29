@@ -570,6 +570,31 @@ Seu objetivo é vender de forma natural, profissional e eficiente, respeitando i
     },
   });
 
+  await prisma.whatsAppTemplate.createMany({
+    data: [
+      {
+        name: "sale_approved",
+        language: "pt_BR",
+        category: "UTILITY",
+        status: "APPROVED",
+        purpose: "Confirmar pedido aprovado",
+        variables: {
+          body: "Seu pedido foi confirmado. Nossa equipe entra em contato para agendar a instalação no endereço cadastrado.",
+        },
+      },
+      {
+        name: "sale_approved_followup",
+        language: "pt_BR",
+        category: "UTILITY",
+        status: "APPROVED",
+        purpose: "Follow-up pós-aprovação",
+        variables: {
+          body: "Passando para confirmar se você recebeu o aviso do pedido. Qualquer dúvida, é só responder esta conversa.",
+        },
+      },
+    ],
+  });
+
   await prisma.retentionPolicy.createMany({
     data: [
       { entity: "Message", days: 365 },

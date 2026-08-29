@@ -124,7 +124,9 @@ export async function applyLaunchResult(input: {
     await prisma.conversation.update({ where: { id: conv.id }, data: { salesStage: stage } });
     if (input.result === "APROVADO") {
       const { startWorkflow } = await import("@/domain/workflow");
+      const { progressApprovedSaleWorkflow } = await import("@/domain/post-sale");
       await startWorkflow("Pós-venda padrão", conv.id, preSale.leadId);
+      await progressApprovedSaleWorkflow(conv.id);
     }
   }
 

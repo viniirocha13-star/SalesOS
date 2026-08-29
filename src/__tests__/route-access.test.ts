@@ -7,6 +7,7 @@ describe("RBAC por URL", () => {
     expect(canAccessPath("ANALISTA", "/inbox")).toBe(false);
     expect(canAccessPath("ANALISTA", "/dashboard")).toBe(true);
     expect(canAccessPath("ANALISTA", "/leads")).toBe(true);
+    expect(canAccessPath("ANALISTA", "/pos-venda")).toBe(true);
   });
 
   it("operador acessa fila e inbox, não admin", () => {

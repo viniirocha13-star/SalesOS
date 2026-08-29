@@ -24,6 +24,10 @@ export default async function HomeOperadorPage() {
           <p className="text-[12px] tracking-[0.14em] text-ink/40 uppercase">Conversas assumidas</p>
           <p className="font-heading mt-3 text-5xl">{mine}</p>
         </Link>
+        <Link href="/pos-venda" className="surface block p-6 transition-transform hover:-translate-y-0.5">
+          <p className="text-[12px] tracking-[0.14em] text-ink/40 uppercase">Pós-venda</p>
+          <p className="mt-3 text-sm text-ink/60">Workflows, follow-ups e avisos após o pedido aprovado.</p>
+        </Link>
       </div>
     </div>
   );

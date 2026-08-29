@@ -63,6 +63,7 @@ Outros usuários seed (mesma senha): `rachel.c@example.org` (supervisor), `zoe.m
 - Laboratório `/conversas`
 - Integrações `/admin/integracoes`
 - Diagnóstico `/admin/diagnostico`
+- Pós-venda `/pos-venda`
 
 WhatsApp real: preencha as variáveis Meta no `.env` e aponte o webhook para `/api/whatsapp/webhook`. Sem chave OpenAI o laboratório usa `DevMockLlmProvider` (identificado na UI).
 

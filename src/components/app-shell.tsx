@@ -33,6 +33,7 @@ const MAIN: { href: string; label: string; icon: typeof Bell; perm: string }[] =
   { href: "/inbox", label: "Inbox", icon: MessageCircle, perm: "conversations.view" },
   { href: "/leads", label: "Leads", icon: Users, perm: "leads.view" },
   { href: "/vendas", label: "Vendas", icon: ShoppingBag, perm: "sales.view" },
+  { href: "/pos-venda", label: "Pós-venda", icon: ShoppingBag, perm: "sales.view" },
   { href: "/ofertas", label: "Ofertas", icon: Tags, perm: "offers.view" },
   { href: "/home", label: "Tarefas", icon: Inbox, perm: "operation.queue" },
   { href: "/operacao", label: "Operação", icon: Inbox, perm: "operation.queue" },
