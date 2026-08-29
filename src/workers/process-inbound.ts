@@ -1,6 +1,23 @@
 import { prisma } from "@/lib/prisma";
+import { applyInboundWhatsAppEvent } from "@/domain/inbound-whatsapp";
 import { runSalesOrchestrator } from "@/ai/orchestrator";
 import { logInfo } from "@/lib/logger";
+import type { ParsedWhatsAppEvent } from "@/integrations/whatsapp/parse";
+
+export async function processWhatsAppEvent(providerEventId: string) {
+  const row = await prisma.whatsAppInboundEvent.findUnique({ where: { providerEventId } });
+  if (!row) return;
+  if (row.processedAt) {
+    logInfo("whatsapp.event_duplicate", { providerEventId });
+    return;
+  }
+  const event = row.payload as unknown as ParsedWhatsAppEvent;
+  await applyInboundWhatsAppEvent(event);
+  await prisma.whatsAppInboundEvent.update({
+    where: { providerEventId },
+    data: { processedAt: new Date() },
+  });
+}
 
 export async function processBufferedConversation(conversationId: string) {
   const pending = await prisma.message.findMany({
@@ -20,5 +37,6 @@ export async function processBufferedConversation(conversationId: string) {
     conversationId,
     combinedInbound: combined,
     persistInbound: false,
+    inboundVersionAtStart: undefined,
   });
 }

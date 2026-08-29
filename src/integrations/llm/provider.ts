@@ -34,10 +34,10 @@ export class OpenAiLlmProvider implements LlmProvider {
     const key = process.env.OPENAI_API_KEY;
     const model = aiModelFor(input.purpose ?? "SALES");
     if (!key) throw new Error("OPENAI_API_KEY ausente");
-    if (process.env.OPENAI_API_STYLE === "responses") {
-      return this.responses(key, model, input);
+    if (process.env.OPENAI_API_STYLE === "chat") {
+      return this.chatCompletions(key, model, input);
     }
-    return this.chatCompletions(key, model, input);
+    return this.responses(key, model, input);
   }
 
   private async chatCompletions(key: string, model: string, input: { messages: LlmMessage[]; tools: LlmTool[] }): Promise<LlmResult> {
@@ -136,18 +136,20 @@ export class DevMockLlmProvider implements LlmProvider {
 
     const calls: LlmToolCall[] = [];
     if (/humano|atendente|pessoa|reclam/.test(lower)) {
-      calls.push({ id: "t1", name: "request_human", arguments: { reason: "CLIENTE_SOLICITOU" } });
+      calls.push({ id: "t1", name: "request_human_handoff", arguments: { reason: "CLIENTE_SOLICITOU" } });
     } else if (/não quero|nao quero|caro|depois|pensar|concorrente/.test(lower)) {
       calls.push({ id: "t1", name: "register_objection", arguments: { text: lastUser } });
     } else if (/viab|cep|rua |bairro|endere/.test(lower)) {
       calls.push({ id: "t1", name: "check_viability", arguments: extractLocation(lastUser) });
     } else if (/aceito|fechar|pode cadastrar|quero esse|fecha/.test(lower)) {
-      calls.push({ id: "t1", name: "create_pre_sale", arguments: {} });
+      calls.push({ id: "t1", name: "register_buying_intent", arguments: {} });
     } else if (/plano|oferta|preço|preco|mega|internet|melhor/.test(lower)) {
-      calls.push({ id: "t1", name: "search_offers", arguments: { query: lastUser } });
+      const city = extractLocation(lastUser).city;
+      if (city) calls.push({ id: "t0", name: "update_customer_fact", arguments: { key: "city", value: city } });
+      calls.push({ id: "t1", name: "search_eligible_offers", arguments: { query: lastUser, city } });
     } else {
-      calls.push({ id: "t1", name: "update_lead_stage", arguments: { status: "QUALIFICANDO" } });
-      calls.push({ id: "t2", name: "get_customer", arguments: {} });
+      calls.push({ id: "t1", name: "set_sales_stage", arguments: { stage: "DISCOVERY" } });
+      calls.push({ id: "t2", name: "get_customer_context", arguments: {} });
     }
     return { model: this.name, content: "", toolCalls: calls };
   }

@@ -15,12 +15,14 @@ O repositório já tinha Fase 1: auth, CRM, book/ofertas, simulador, fila operac
 A IA conversa; o **backend** valida tools, ofertas, viabilidade e estado.
 
 ```
-Ads/QR/Link → WhatsApp Cloud API → webhook (rápido)
-  → WhatsAppInboundEvent (idempotente)
-  → buffer (MESSAGE_BUFFER_MS)
-  → worker → AISalesOrchestrator → tools → OfferEngine
-  → PolicyService (janela 24h) → envio
-  → Inbox / Pré-venda / Operador → evento → IA retoma
+WhatsApp Cloud API → webhook (HMAC, 200 rápido)
+  → WhatsAppInboundEvent (wamid único)
+  → job PROCESS_INBOUND_WHATSAPP_MESSAGE
+  → Message inbound + Lead/Customer
+  → job GENERATE_AI_RESPONSE (debounce 3–6s)
+  → AISalesOrchestrator + tools + Offer Engine
+  → job SEND_WHATSAPP_MESSAGE
+  → Inbox (polling 2,5–4s) / Assumir / Devolver
 ```
 
 Multi-tenant: `Tenant` + `tenantId` nas entidades centrais.

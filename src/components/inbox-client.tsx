@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { LeadBadge } from "@/components/status-badge";
+import { formatDateTime } from "@/lib/format";
 import type { LeadStatus } from "@prisma/client";
 
 const FILTERS = [
@@ -31,19 +32,23 @@ type Row = {
   score: number;
 };
 
+type Detail = {
+  aiEnabled: boolean;
+  salesStage: string;
+  lead: { name: string | null; phone: string; city: string | null; status: LeadStatus; score: number; productInterest: string | null };
+  messages: { id: string; actor: string; body: string; createdAt: string; status?: string }[];
+};
+
 export function InboxClient() {
   const [filter, setFilter] = useState("all");
   const [list, setList] = useState<Row[]>([]);
   const [active, setActive] = useState<string | null>(null);
-  const [detail, setDetail] = useState<{
-    aiEnabled: boolean;
-    salesStage: string;
-    lead: { name: string | null; phone: string; city: string | null; status: LeadStatus; score: number; productInterest: string | null };
-    messages: { id: string; actor: string; body: string; createdAt: string }[];
-  } | null>(null);
+  const [detail, setDetail] = useState<Detail | null>(null);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [sending, setSending] = useState(false);
+  const scroller = useRef<HTMLDivElement>(null);
 
   async function loadList() {
     try {
@@ -59,12 +64,14 @@ export function InboxClient() {
     }
   }
 
-  async function open(id: string) {
-    setActive(id);
+  async function open(id: string, silent = false) {
+    if (!silent) setActive(id);
     const res = await fetch(`/api/inbox/${id}`);
     if (!res.ok) {
-      setDetail(null);
-      setError("Não foi possível abrir a conversa.");
+      if (!silent) {
+        setDetail(null);
+        setError("Não foi possível abrir a conversa.");
+      }
       return;
     }
     setDetail(await res.json());
@@ -72,10 +79,22 @@ export function InboxClient() {
 
   useEffect(() => {
     void loadList();
-    const t = setInterval(() => void loadList(), 8000);
+    const t = setInterval(() => void loadList(), 4000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- poll inbox
   }, [filter]);
+
+  useEffect(() => {
+    if (!active) return;
+    const t = setInterval(() => void open(active, true), 2500);
+    return () => clearInterval(t);
+  }, [active]);
+
+  useEffect(() => {
+    scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
+  }, [detail?.messages.length]);
+
+  const failedOutbound = detail?.messages.some((m) => m.actor !== "CUSTOMER" && m.status === "FAILED");
 
   return (
     <div className="grid h-[calc(100vh-7rem)] grid-cols-1 overflow-hidden rounded-xl border bg-white lg:grid-cols-[280px_1fr_280px]">
@@ -117,7 +136,7 @@ export function InboxClient() {
               <div className="truncate text-xs text-zinc-600">{c.preview}</div>
             </button>
           ))}
-          {!list.length && <p className="p-4 text-sm text-zinc-500">Nenhuma conversa neste filtro.</p>}
+          {!list.length && !loading && <p className="p-4 text-sm text-zinc-500">Nenhuma conversa neste filtro.</p>}
         </div>
       </aside>
       <section className="flex min-w-0 flex-col">
@@ -125,23 +144,50 @@ export function InboxClient() {
           <div className="text-sm font-medium">{detail?.lead.name ?? "Selecione uma conversa"}</div>
           {active && (
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={async () => { await fetch(`/api/conversations/${active}/handoff`, { method: "POST" }); open(active); }}>
+              <Button
+                size="sm"
+                variant="outline"
+                data-testid="assume-conversation"
+                disabled={!detail?.aiEnabled}
+                onClick={async () => {
+                  await fetch(`/api/conversations/${active}/handoff`, { method: "POST" });
+                  open(active);
+                }}
+              >
                 Assumir conversa
               </Button>
-              <Button size="sm" variant="secondary" onClick={async () => { await fetch(`/api/conversations/${active}/handoff`, { method: "DELETE" }); open(active); }}>
+              <Button
+                size="sm"
+                variant="secondary"
+                data-testid="return-to-ai"
+                disabled={detail?.aiEnabled}
+                onClick={async () => {
+                  await fetch(`/api/conversations/${active}/handoff`, { method: "DELETE" });
+                  open(active);
+                }}
+              >
                 Devolver para IA
               </Button>
             </div>
           )}
         </div>
-        <div className="flex-1 space-y-2 overflow-y-auto p-4">
+        {failedOutbound && (
+          <p role="alert" className="bg-red-50 px-4 py-2 text-xs text-red-700">
+            Uma mensagem não foi entregue no WhatsApp. O status aparece como FAILED; o worker tenta de novo automaticamente.
+          </p>
+        )}
+        <div ref={scroller} className="flex-1 space-y-2 overflow-y-auto p-4">
           {!detail && !active && (
             <p className="text-sm text-zinc-500">Selecione uma conversa à esquerda para ver mensagens da IA, do cliente e do operador.</p>
           )}
           {detail?.messages.map((m) => (
             <div key={m.id} className={cn("max-w-[80%] rounded-2xl px-3 py-2 text-sm", actorClass(m.actor))}>
-              <div className="text-[10px] uppercase opacity-70">{m.actor === "AI" ? "IA" : m.actor === "CUSTOMER" ? "Cliente" : m.actor === "HUMAN" ? "Humano" : "Sistema"}</div>
+              <div className="text-[10px] uppercase opacity-70">
+                {m.actor === "AI" ? "IA" : m.actor === "CUSTOMER" ? "Cliente" : m.actor === "HUMAN" ? "Humano" : "Sistema"}
+                {m.status === "FAILED" ? " · falhou" : m.status === "READ" ? " · lida" : m.status === "DELIVERED" ? " · entregue" : ""}
+              </div>
               {m.body}
+              <div className="mt-1 text-[10px] opacity-60">{formatDateTime(m.createdAt)}</div>
             </div>
           ))}
           {detail && !detail.messages.length && (
@@ -154,16 +200,25 @@ export function InboxClient() {
             onChange={(e) => setText(e.target.value)}
             placeholder={detail && !detail.aiEnabled ? "Responder como humano..." : "Assuma a conversa para responder"}
             disabled={!detail || detail.aiEnabled}
+            aria-label="Mensagem do operador"
+            data-testid="human-composer"
           />
           <Button
-            disabled={!detail || detail.aiEnabled || !text}
+            data-testid="send-human"
+            disabled={!detail || detail.aiEnabled || !text || sending}
             onClick={async () => {
-              await fetch(`/api/inbox/${active}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body: text }) });
+              setSending(true);
+              await fetch(`/api/inbox/${active}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ body: text }),
+              });
               setText("");
+              setSending(false);
               if (active) open(active);
             }}
           >
-            Enviar
+            {sending ? "Enviando..." : "Enviar"}
           </Button>
         </div>
       </section>

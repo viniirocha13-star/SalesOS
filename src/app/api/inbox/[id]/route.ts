@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requirePermission, errorResponse } from "@/lib/session";
-import { getWhatsAppProvider } from "@/integrations/whatsapp/provider";
 import { canSendFreeform } from "@/integrations/whatsapp/policy";
 import { audit } from "@/lib/audit";
 
@@ -34,7 +33,7 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
     if (conv.aiEnabled) {
       return NextResponse.json({ error: "Assuma a conversa antes de responder." }, { status: 409 });
     }
-    await prisma.message.create({
+    const created = await prisma.message.create({
       data: {
         conversationId: id,
         direction: "OUTBOUND",
@@ -43,8 +42,17 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
         status: "QUEUED",
       },
     });
-    if (conv.channel === "WHATSAPP" && canSendFreeform(conv.lastInboundAt).freeform) {
-      await getWhatsAppProvider().sendText(conv.lead.phone, body);
+    await prisma.conversation.update({
+      where: { id },
+      data: { lastMessageAt: new Date(), ownerId: user.id },
+    });
+    if (conv.channel === "WHATSAPP") {
+      const { enqueueSendWhatsApp } = await import("@/workers/queue");
+      if (canSendFreeform(conv.lastInboundAt).freeform) {
+        await enqueueSendWhatsApp(created.id);
+      }
+    } else {
+      await prisma.message.update({ where: { id: created.id }, data: { status: "SENT" } });
     }
     await audit({ actorId: user.id, action: "inbox.human_reply", entity: "Conversation", entityId: id });
     return NextResponse.json({ ok: true });

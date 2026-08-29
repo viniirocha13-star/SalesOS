@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { emit } from "@/events/bus";
 import type { LeadSource, LeadStatus } from "@prisma/client";
+import { normalizePhone } from "@/lib/phone";
 
 export async function createLead(input: {
   name?: string;
@@ -19,7 +20,7 @@ export async function createLead(input: {
   const lead = await prisma.lead.create({
     data: {
       name: input.name,
-      phone: input.phone.replace(/\D/g, ""),
+      phone: normalizePhone(input.phone),
       city: input.city,
       origin: input.origin ?? "OUTROS",
       source: input.source,

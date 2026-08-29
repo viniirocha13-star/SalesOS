@@ -9,8 +9,54 @@ import type { HandoffReason, LeadStatus, ObjectionCategory } from "@prisma/clien
 
 export const SALES_TOOLS = [
   {
+    name: "get_customer_context",
+    description: "Lê dados já conhecidos do lead, fatos e estágio. Não inventa.",
+    parameters: { type: "object", properties: {} },
+  },
+  {
+    name: "update_customer_fact",
+    description: "Persiste um fato do cliente (cidade, nome, interesse, provedor atual, orçamento).",
+    parameters: {
+      type: "object",
+      properties: { key: { type: "string" }, value: { type: "string" } },
+      required: ["key", "value"],
+    },
+  },
+  {
+    name: "set_sales_stage",
+    description: "Atualiza o estágio comercial da conversa no backend.",
+    parameters: {
+      type: "object",
+      properties: { stage: { type: "string" }, reason: { type: "string" } },
+      required: ["stage"],
+    },
+  },
+  {
+    name: "search_eligible_offers",
+    description: "Busca somente ofertas APROVADAS e vigentes no Offer Engine. Nunca inventa preço.",
+    parameters: {
+      type: "object",
+      properties: { query: { type: "string" }, city: { type: "string" }, users: { type: "number" }, need: { type: "string" } },
+    },
+  },
+  {
+    name: "get_offer_details",
+    description: "Obtém uma oferta aprovada e vigente pelo id.",
+    parameters: { type: "object", properties: { offerId: { type: "string" } }, required: ["offerId"] },
+  },
+  {
+    name: "register_buying_intent",
+    description: "Registra intenção de compra explícita do cliente.",
+    parameters: { type: "object", properties: { offerId: { type: "string" }, notes: { type: "string" } } },
+  },
+  {
+    name: "request_human_handoff",
+    description: "Transfere para humano e bloqueia a IA.",
+    parameters: { type: "object", properties: { reason: { type: "string" }, notes: { type: "string" } } },
+  },
+  {
     name: "search_offers",
-    description: "Busca somente ofertas APROVADAS e vigentes. Nunca inventa preço.",
+    description: "Alias de search_eligible_offers.",
     parameters: {
       type: "object",
       properties: { query: { type: "string" }, city: { type: "string" }, users: { type: "number" } },
@@ -18,7 +64,7 @@ export const SALES_TOOLS = [
   },
   {
     name: "get_offer",
-    description: "Obtém uma oferta aprovada pelo id.",
+    description: "Alias de get_offer_details.",
     parameters: { type: "object", properties: { offerId: { type: "string" } }, required: ["offerId"] },
   },
   {
@@ -66,7 +112,7 @@ export const SALES_TOOLS = [
   },
   {
     name: "request_human",
-    description: "Transfere para humano e bloqueia a IA.",
+    description: "Alias de request_human_handoff.",
     parameters: { type: "object", properties: { reason: { type: "string" }, notes: { type: "string" } } },
   },
   {
@@ -86,18 +132,28 @@ export const SALES_TOOLS = [
   },
 ] as const;
 
+const TOOL_ALIAS: Record<string, string> = {
+  search_offers: "search_eligible_offers",
+  get_offer: "get_offer_details",
+  get_customer: "get_customer_context",
+  update_customer: "update_customer_fact",
+  update_lead_stage: "set_sales_stage",
+  request_human: "request_human_handoff",
+};
+
 export async function runTool(
   name: string,
   args: Record<string, unknown>,
   ctx: { leadId: string; conversationId: string },
-) {
-  switch (name) {
-    case "search_offers": {
+): Promise<Record<string, unknown>> {
+  const resolved = TOOL_ALIAS[name] ?? name;
+  switch (resolved) {
+    case "search_eligible_offers": {
       const lead = await prisma.lead.findUniqueOrThrow({ where: { id: ctx.leadId } });
       const ranking = await selectOffers({
         city: (args.city as string) || lead.city,
         users: (args.users as number) || 3,
-        need: lead.productInterest,
+        need: (args.need as string) || lead.productInterest,
         viabilityReliable: true,
       });
       const offers = [ranking.best_offer, ranking.alternative_offer, ranking.upsell, ranking.cross_sell].filter(Boolean);
@@ -111,7 +167,7 @@ export async function runTool(
         policy: "somente ofertas aprovadas",
       };
     }
-    case "get_offer": {
+    case "get_offer_details": {
       const offer = await prisma.offer.findFirst({
         where: { id: String(args.offerId), status: "APROVADA" },
       });
@@ -153,23 +209,57 @@ export async function runTool(
       await emit("VIABILITY_CHECKED", ctx.leadId, { result: result.result, source: result.source });
       return { viability: { ...result, city: args.city } };
     }
-    case "get_customer": {
+    case "get_customer_context": {
       const lead = await prisma.lead.findUnique({
         where: { id: ctx.leadId },
-        include: { customer: true, consents: true },
+        include: { customer: true, consents: true, facts: true },
       });
-      return { lead };
+      const conv = await prisma.conversation.findUnique({
+        where: { id: ctx.conversationId },
+        include: { memory: true },
+      });
+      return { lead, salesStage: conv?.salesStage, memory: conv?.memory?.customerFacts };
     }
-    case "update_customer": {
-      const data: Record<string, unknown> = {};
-      for (const key of ["name", "city", "neighborhood", "address", "zipCode", "productInterest"] as const) {
-        if (args[key]) data[key] = args[key];
+    case "update_customer_fact": {
+      if (!args.key) {
+        const results = [];
+        for (const key of ["name", "city", "neighborhood", "address", "zipCode", "productInterest"] as const) {
+          if (args[key]) {
+            results.push(await runTool("update_customer_fact", { key, value: args[key] }, ctx));
+          }
+        }
+        return results.length ? { facts: results as unknown[] } : { error: "fato_incompleto" };
       }
-      const lead = await prisma.lead.update({ where: { id: ctx.leadId }, data });
-      return { lead };
+      const key = String(args.key ?? "").trim();
+      const value = String(args.value ?? "").trim();
+      if (!key || !value) return { error: "fato_incompleto" };
+      const leadPatch: Record<string, string> = {};
+      if (["name", "nome"].includes(key)) leadPatch.name = value;
+      if (["city", "cidade"].includes(key)) leadPatch.city = value;
+      if (["neighborhood", "bairro"].includes(key)) leadPatch.neighborhood = value;
+      if (["address", "endereco"].includes(key)) leadPatch.address = value;
+      if (["zipCode", "cep"].includes(key)) leadPatch.zipCode = value;
+      if (["productInterest", "product_interest", "interesse"].includes(key)) leadPatch.productInterest = value;
+      if (Object.keys(leadPatch).length) {
+        await prisma.lead.update({ where: { id: ctx.leadId }, data: leadPatch });
+      }
+      await prisma.customerFact.upsert({
+        where: { leadId_key: { leadId: ctx.leadId, key } },
+        update: { value },
+        create: { leadId: ctx.leadId, key, value, source: "conversation" },
+      });
+      const { refreshConversationMemory } = await import("@/ai/memory");
+      await refreshConversationMemory(ctx.conversationId, { [key]: value } as never);
+      return { ok: true, key, value };
     }
-    case "update_lead_stage": {
-      const status = args.status as LeadStatus;
+    case "set_sales_stage": {
+      const { setSalesStage } = await import("@/ai/orchestrator");
+      const stage = String(args.stage ?? args.status ?? "");
+      if (stage) {
+        await setSalesStage(ctx.conversationId, stage as never, String(args.reason ?? "tool"), "AI");
+      }
+      const status = (args.status as LeadStatus) || undefined;
+      if (!status) return { stage };
       const allowed: LeadStatus[] = [
         "EM_ATENDIMENTO_IA",
         "QUALIFICANDO",
@@ -208,7 +298,14 @@ export async function runTool(
       await emit("CUSTOMER_ACCEPTED", ctx.leadId, { offerId: offer.id });
       return { preSale };
     }
-    case "request_human": {
+    case "register_buying_intent": {
+      await emit("BUYING_INTENT_DETECTED", ctx.leadId, { offerId: args.offerId, notes: args.notes });
+      await transitionLead(ctx.leadId, "ACEITE_COMERCIAL", "buying_intent");
+      const { setSalesStage } = await import("@/ai/orchestrator");
+      await setSalesStage(ctx.conversationId, "BUYING_INTENT", "tool", "AI");
+      return { ok: true };
+    }
+    case "request_human_handoff": {
       await prisma.conversation.update({
         where: { id: ctx.conversationId },
         data: { status: "HANDOFF_HUMANO", aiEnabled: false, salesStage: "HUMAN_HANDOFF" },

@@ -51,3 +51,18 @@ test("login → Inbox → abrir conversa", async ({ page }) => {
   await page.getByRole("button", { name: /Conversa Maria Alves/ }).click();
   await expect(page.getByRole("heading", { name: "Lead" })).toBeVisible();
 });
+
+test("Inbox → assumir → composer humano → devolver para IA", async ({ page }) => {
+  await login(page);
+  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("link", { name: "Inbox" }).click();
+  await page.getByRole("button", { name: /Conversa Maria Alves/ }).click();
+  await expect(page.getByTestId("human-composer")).toBeDisabled();
+  await page.getByTestId("assume-conversation").click();
+  await expect(page.getByTestId("human-composer")).toBeEnabled({ timeout: 10_000 });
+  await page.getByTestId("human-composer").fill("Confirmando cobertura com você.");
+  await page.getByTestId("send-human").click();
+  await expect(page.getByText("Confirmando cobertura com você.")).toBeVisible();
+  await page.getByTestId("return-to-ai").click();
+  await expect(page.getByText("IA respondendo", { exact: true })).toBeVisible({ timeout: 10_000 });
+});
