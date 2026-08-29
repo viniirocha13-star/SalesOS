@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 
 type Msg = { id: string; direction: "INBOUND" | "OUTBOUND"; body: string };
 
@@ -51,33 +50,40 @@ export function ChatPanel({
   }
 
   return (
-    <div className="flex h-[70vh] flex-col rounded-xl border bg-white">
-      <div className="flex items-center justify-between border-b px-4 py-2 text-sm">
-        <span>Simulador WhatsApp</span>
+    <div className="surface flex h-[72vh] flex-col overflow-hidden">
+      <div className="flex items-center justify-between border-b border-[#efe6d9] px-5 py-3">
+        <div>
+          <p className="text-[11px] tracking-[0.16em] text-ink/40 uppercase">Simulador</p>
+          <p className="font-heading text-xl">WhatsApp</p>
+        </div>
         <div className="flex gap-2">
-          {handoff && <Badge variant="destructive">IA pausada — handoff</Badge>}
-          <Badge variant="secondary">{provider === "dev_mock_llm" ? "LLM: mock de desenvolvimento" : `LLM: ${provider}`}</Badge>
+          {handoff && (
+            <span className="rounded-full bg-red-50 px-3 py-1 text-xs text-red-800">IA pausada — handoff</span>
+          )}
+          <span className="rounded-full bg-[#efe6d9] px-3 py-1 text-xs text-ink/60">
+            {provider === "dev_mock_llm" ? "LLM: mock de desenvolvimento" : `LLM: ${provider}`}
+          </span>
         </div>
       </div>
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-2">
+      <ScrollArea className="flex-1 p-5">
+        <div className="space-y-3">
           {messages.map((m) => (
             <div key={m.id} className={m.direction === "INBOUND" ? "flex justify-end" : "flex justify-start"}>
               <div
                 className={
                   m.direction === "INBOUND"
-                    ? "max-w-[80%] rounded-2xl bg-orange-500 px-3 py-2 text-sm text-white"
-                    : "max-w-[80%] rounded-2xl bg-zinc-100 px-3 py-2 text-sm"
+                    ? "max-w-[80%] rounded-[1.4rem] rounded-br-md bg-terracotta px-4 py-2.5 text-[15px] leading-relaxed text-white"
+                    : "max-w-[80%] rounded-[1.4rem] rounded-bl-md bg-[#efe6d9] px-4 py-2.5 text-[15px] leading-relaxed text-ink"
                 }
               >
                 {m.body}
               </div>
             </div>
           ))}
-          {loading && <div className="text-xs text-zinc-400">IA consultando ofertas/regras...</div>}
+          {loading && <div className="text-xs text-ink/40">Consultando ofertas e regras…</div>}
         </div>
       </ScrollArea>
-      <div className="flex gap-2 border-t p-3">
+      <div className="flex gap-2 border-t border-[#efe6d9] p-4">
         <Input
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -85,8 +91,9 @@ export function ChatPanel({
           placeholder={handoff ? "IA bloqueada nesta conversa" : "Mensagem do cliente..."}
           data-testid="customer-message"
           disabled={handoff}
+          className="h-11 rounded-full bg-white"
         />
-        <Button onClick={send} disabled={loading || handoff} className="bg-orange-500 hover:bg-orange-600">
+        <Button onClick={send} disabled={loading || handoff} className="h-11 rounded-full px-5">
           Enviar
         </Button>
       </div>

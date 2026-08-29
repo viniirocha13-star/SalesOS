@@ -1,14 +1,15 @@
 import { InboxClient } from "@/components/inbox-client";
+import { PageHeader } from "@/components/page-header";
 
 export default function InboxPage() {
   return (
-    <div className="space-y-3">
-      <div>
-        <h1 className="text-2xl font-semibold" data-testid="heading-inbox">
-          Inbox WhatsApp
-        </h1>
-        <p className="text-sm text-zinc-500">IA e humano nunca respondem ao mesmo tempo. Assumir pausa a IA imediatamente.</p>
-      </div>
+    <div>
+      <PageHeader
+        kicker="WhatsApp"
+        title="Inbox WhatsApp"
+        description="IA e humano nunca respondem ao mesmo tempo. Assumir pausa a IA imediatamente."
+        titleTestId="heading-inbox"
+      />
       <InboxClient />
     </div>
   );

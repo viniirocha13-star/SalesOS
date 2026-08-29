@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { formatBRL, formatDateTime } from "@/lib/format";
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 
 export default async function VendasPage() {
   const sales = await prisma.sale.findMany({
@@ -8,11 +9,11 @@ export default async function VendasPage() {
     orderBy: { createdAt: "desc" },
   });
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Vendas</h1>
-      <div className="overflow-x-auto rounded-xl border bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
+    <div>
+      <PageHeader title="Vendas" description="Pedidos aprovados depois do lançamento." />
+      <div className="surface overflow-x-auto">
+        <table className="data-table">
+          <thead>
             <tr>
               <th className="p-3">Cliente</th>
               <th className="p-3">Oferta</th>
@@ -37,7 +38,7 @@ export default async function VendasPage() {
             ))}
             {!sales.length && (
               <tr>
-                <td className="p-6 text-zinc-500" colSpan={5}>
+                <td className="p-6 text-ink/50" colSpan={5}>
                   Nenhuma venda lançada. Use a fila operacional após o aceite.
                 </td>
               </tr>

@@ -97,21 +97,21 @@ export function InboxClient() {
   const failedOutbound = detail?.messages.some((m) => m.actor !== "CUSTOMER" && m.status === "FAILED");
 
   return (
-    <div className="grid h-[calc(100vh-7rem)] grid-cols-1 overflow-hidden rounded-xl border bg-white lg:grid-cols-[280px_1fr_280px]">
-      <aside className="flex flex-col border-r">
-        <div className="flex flex-wrap gap-1 border-b p-2">
+    <div className="surface grid h-[calc(100vh-9rem)] grid-cols-1 overflow-hidden lg:grid-cols-[280px_1fr_260px]">
+      <aside className="flex flex-col border-r border-[#efe6d9]">
+        <div className="flex flex-wrap gap-1 border-b border-[#efe6d9] p-3">
           {FILTERS.map(([id, label]) => (
             <button
               key={id}
               onClick={() => setFilter(id)}
-              className={cn("rounded-full px-2 py-0.5 text-[11px]", filter === id ? "bg-[#0f3d38] text-white" : "bg-zinc-100")}
+              className={cn("rounded-full px-2.5 py-1 text-[11px]", filter === id ? "bg-espresso text-[#f6efe6]" : "bg-[#efe6d9] text-ink/70")}
             >
               {label}
             </button>
           ))}
         </div>
         <div className="flex-1 overflow-y-auto">
-          {loading && <p className="p-4 text-sm text-zinc-500">Carregando conversas…</p>}
+          {loading && <p className="p-4 text-sm text-ink/50">Carregando conversas…</p>}
           {error && (
             <p role="alert" className="p-4 text-sm text-red-600">
               {error}
@@ -124,24 +124,24 @@ export function InboxClient() {
               data-testid={`conversation-${c.name ?? c.phone}`}
               aria-label={`Conversa ${c.name ?? c.phone}`}
               onClick={() => open(c.id)}
-              className={cn("w-full border-b px-3 py-2 text-left hover:bg-zinc-50", active === c.id && "bg-orange-50")}
+              className={cn("w-full border-b border-[#efe6d9] px-3 py-3 text-left hover:bg-[#f6f0e8]", active === c.id && "bg-[#efe6d9]")}
             >
-              <div className="flex justify-between text-sm font-medium">
+              <div className="flex justify-between text-sm">
                 <span>{c.name ?? c.phone}</span>
-                {c.unread > 0 && <span className="rounded-full bg-orange-500 px-1.5 text-[10px] text-white">{c.unread}</span>}
+                {c.unread > 0 && <span className="rounded-full bg-terracotta px-1.5 text-[10px] text-white">{c.unread}</span>}
               </div>
-              <div className="text-[11px] text-zinc-500">
+              <div className="text-[11px] text-ink/45">
                 {c.city ?? "—"} · {c.aiEnabled ? "IA" : "Humano"} · {c.stage}
               </div>
-              <div className="truncate text-xs text-zinc-600">{c.preview}</div>
+              <div className="truncate text-xs text-ink/60">{c.preview}</div>
             </button>
           ))}
           {!list.length && !loading && <p className="p-4 text-sm text-zinc-500">Nenhuma conversa neste filtro.</p>}
         </div>
       </aside>
       <section className="flex min-w-0 flex-col">
-        <div className="flex items-center justify-between border-b px-4 py-2">
-          <div className="text-sm font-medium">{detail?.lead.name ?? "Selecione uma conversa"}</div>
+        <div className="flex items-center justify-between border-b border-[#efe6d9] px-4 py-3">
+          <div className="font-heading text-xl">{detail?.lead.name ?? "Selecione uma conversa"}</div>
           {active && (
             <div className="flex gap-2">
               <Button
@@ -178,7 +178,7 @@ export function InboxClient() {
         )}
         <div ref={scroller} className="flex-1 space-y-2 overflow-y-auto p-4">
           {!detail && !active && (
-            <p className="text-sm text-zinc-500">Selecione uma conversa à esquerda para ver mensagens da IA, do cliente e do operador.</p>
+            <p className="text-sm text-ink/50">Selecione uma conversa à esquerda para ver mensagens da IA, do cliente e do operador.</p>
           )}
           {detail?.messages.map((m) => (
             <div key={m.id} className={cn("max-w-[80%] rounded-2xl px-3 py-2 text-sm", actorClass(m.actor))}>
@@ -191,10 +191,10 @@ export function InboxClient() {
             </div>
           ))}
           {detail && !detail.messages.length && (
-            <p className="text-sm text-zinc-500">Esta conversa ainda não tem mensagens.</p>
+            <p className="text-sm text-ink/50">Esta conversa ainda não tem mensagens.</p>
           )}
         </div>
-        <div className="flex gap-2 border-t p-3">
+        <div className="flex gap-2 border-t border-[#efe6d9] p-3">
           <Input
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -222,10 +222,10 @@ export function InboxClient() {
           </Button>
         </div>
       </section>
-      <aside className="hidden space-y-3 overflow-y-auto border-l p-4 text-sm lg:block">
+      <aside className="hidden space-y-3 overflow-y-auto border-l border-[#efe6d9] bg-[#faf6f0] p-5 text-sm lg:block">
         {detail ? (
           <>
-            <h2 className="font-semibold">Lead</h2>
+            <h2 className="font-heading text-2xl">Lead</h2>
             <p>{detail.lead.name}</p>
             <p>{detail.lead.phone}</p>
             <p>{detail.lead.city}</p>
@@ -233,10 +233,10 @@ export function InboxClient() {
             <p>Score {detail.lead.score}</p>
             <p>Estágio {detail.salesStage}</p>
             <p>Interesse {detail.lead.productInterest ?? "—"}</p>
-            <p className="text-xs text-zinc-500">{detail.aiEnabled ? "IA respondendo" : "Humano no comando — IA pausada"}</p>
+            <p className="text-xs text-ink/45">{detail.aiEnabled ? "IA respondendo" : "Humano no comando — IA pausada"}</p>
           </>
         ) : (
-          <p className="text-zinc-500">Dados da oportunidade aparecem aqui.</p>
+          <p className="text-ink/50">Dados da oportunidade aparecem aqui.</p>
         )}
       </aside>
     </div>
@@ -244,8 +244,8 @@ export function InboxClient() {
 }
 
 function actorClass(actor: string) {
-  if (actor === "CUSTOMER") return "ml-auto bg-orange-500 text-white";
-  if (actor === "HUMAN") return "bg-emerald-100";
-  if (actor === "SYSTEM") return "bg-amber-50 text-amber-900";
-  return "bg-zinc-100";
+  if (actor === "CUSTOMER") return "ml-auto bg-terracotta text-white";
+  if (actor === "HUMAN") return "bg-[#dce8df]";
+  if (actor === "SYSTEM") return "bg-amber-50 text-amber-950";
+  return "bg-[#efe6d9]";
 }

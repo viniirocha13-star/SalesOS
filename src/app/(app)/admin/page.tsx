@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { formatDateTime } from "@/lib/format";
 import { UserForm } from "@/components/user-form";
+import { PageHeader } from "@/components/page-header";
 
 export default async function AdminPage() {
   const [users, audits] = await Promise.all([
@@ -9,16 +10,16 @@ export default async function AdminPage() {
   ]);
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Administração</h1>
-      <section className="rounded-xl border bg-white p-4">
-        <h2 className="mb-3 font-medium">Módulos</h2>
+      <PageHeader title="Administração" description="Usuários, integrações e auditoria." />
+      <section className="surface p-5">
+        <h2 className="font-heading mb-3 text-xl">Módulos</h2>
         <div className="flex flex-wrap gap-3 text-sm">
           <a className="underline" href="/admin/integracoes">Integrações</a>
           <a className="underline" href="/admin/laboratorio">Laboratório IA</a>
         </div>
       </section>
-      <section className="rounded-xl border bg-white p-4">
-        <h2 className="mb-3 font-medium">Usuários e RBAC</h2>
+      <section className="surface p-5">
+        <h2 className="font-heading mb-3 text-xl">Usuários e RBAC</h2>
         <UserForm />
         <table className="mt-4 w-full text-sm">
           <thead className="text-left text-xs text-zinc-500">
@@ -41,18 +42,18 @@ export default async function AdminPage() {
           </tbody>
         </table>
       </section>
-      <section className="rounded-xl border bg-white p-4">
-        <h2 className="mb-3 font-medium">Auditoria</h2>
+      <section className="surface p-5">
+        <h2 className="font-heading mb-3 text-xl">Auditoria</h2>
         <div className="space-y-1 text-sm">
           {audits.map((a) => (
             <div key={a.id} className="flex justify-between border-b py-1">
               <span>
                 {a.actor?.email ?? "sistema"} · {a.action} · {a.entity}
               </span>
-              <span className="text-zinc-500">{formatDateTime(a.createdAt)}</span>
+              <span className="text-ink/40">{formatDateTime(a.createdAt)}</span>
             </div>
           ))}
-          {!audits.length && <p className="text-zinc-500">Nenhum evento ainda.</p>}
+          {!audits.length && <p className="text-ink/50">Nenhum evento ainda.</p>}
         </div>
       </section>
     </div>

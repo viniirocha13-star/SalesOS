@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Figtree, Instrument_Serif } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const sans = Figtree({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const heading = Instrument_Serif({
+  variable: "--font-heading",
   subsets: ["latin"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -20,8 +21,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full">
+    <html lang="pt-BR" className={`${sans.variable} ${heading.variable} h-full antialiased`}>
+      <body className="min-h-full font-sans">
         <Providers>{children}</Providers>
       </body>
     </html>

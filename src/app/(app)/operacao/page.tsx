@@ -3,6 +3,7 @@ import { waitMinutes } from "@/lib/format";
 import { PreSaleBadge } from "@/components/status-badge";
 import Link from "next/link";
 import { ClaimButton } from "@/components/claim-button";
+import { PageHeader } from "@/components/page-header";
 
 export default async function OperacaoPage() {
   const queue = await prisma.preSale.findMany({
@@ -11,14 +12,15 @@ export default async function OperacaoPage() {
     orderBy: { queuedAt: "asc" },
   });
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Operação · Fila de lançamento</h1>
-        <p className="text-sm text-zinc-500">Pré-vendas para lançamento manual no sistema corporativo.</p>
-      </div>
-      <div className="overflow-x-auto rounded-xl border bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
+    <div>
+      <PageHeader
+        kicker="Fila"
+        title="Operação · Fila de lançamento"
+        description="Pré-vendas prontas para o lançamento no sistema corporativo."
+      />
+      <div className="surface overflow-x-auto">
+        <table className="data-table">
+          <thead>
             <tr>
               <th className="p-3">Cliente</th>
               <th className="p-3">Telefone</th>
@@ -33,7 +35,7 @@ export default async function OperacaoPage() {
           <tbody>
             {!queue.length && (
               <tr>
-                <td className="p-6 text-zinc-500" colSpan={8}>
+                <td className="p-6 text-ink/50" colSpan={8}>
                   Fila vazia. Pré-vendas do simulador ou do WhatsApp aparecem aqui.
                 </td>
               </tr>
@@ -52,7 +54,7 @@ export default async function OperacaoPage() {
                 <td className="p-3">
                   <div className="flex gap-2">
                     <ClaimButton preSaleId={item.id} />
-                    <Link className="text-orange-700 hover:underline" href={`/operacao/${item.id}`}>
+                    <Link className="text-terracotta hover:underline" href={`/operacao/${item.id}`}>
                       Abrir
                     </Link>
                   </div>

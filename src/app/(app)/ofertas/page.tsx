@@ -5,6 +5,7 @@ import Link from "next/link";
 import { OfferImportForm } from "@/components/offer-import-form";
 import { auth } from "@/auth";
 import { can } from "@/lib/rbac";
+import { PageHeader } from "@/components/page-header";
 import type { Role } from "@prisma/client";
 
 export default async function OfertasPage() {
@@ -16,21 +17,17 @@ export default async function OfertasPage() {
   ]);
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold" data-testid="heading-books">
-            Books e ofertas
-          </h1>
-          <p className="text-sm text-zinc-500">
-            O arquivo original fica armazenado. Ofertas extraídas entram em revisão. Só APROVADA e vigente vai para o Offer Engine.
-          </p>
-        </div>
-        {canImport ? <OfferImportForm /> : <p className="text-sm text-zinc-500">Somente supervisor/admin importa books.</p>}
-      </div>
-      <section className="overflow-x-auto rounded-xl border bg-white">
-        <h2 className="border-b px-3 py-2 text-sm font-medium">Books importados</h2>
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
+      <PageHeader
+        kicker="Catálogo"
+        title="Books e ofertas"
+        description="O arquivo original fica guardado. Só oferta aprovada e vigente entra no motor."
+        titleTestId="heading-books"
+        action={canImport ? <OfferImportForm /> : <p className="text-sm text-ink/50">Somente supervisor/admin importa books.</p>}
+      />
+      <section className="surface overflow-x-auto">
+        <h2 className="font-heading border-b border-[#efe6d9] px-4 py-3 text-xl">Books importados</h2>
+        <table className="data-table">
+          <thead>
             <tr>
               <th className="p-3">Arquivo</th>
               <th className="p-3">Ofertas</th>
@@ -55,10 +52,10 @@ export default async function OfertasPage() {
           </tbody>
         </table>
       </section>
-      <section className="overflow-x-auto rounded-xl border bg-white">
-        <h2 className="border-b px-3 py-2 text-sm font-medium">Ofertas</h2>
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
+      <section className="surface overflow-x-auto">
+        <h2 className="font-heading border-b border-[#efe6d9] px-4 py-3 text-xl">Ofertas</h2>
+        <table className="data-table">
+          <thead>
             <tr>
               <th className="p-3">Oferta</th>
               <th className="p-3">Cidade</th>
@@ -85,7 +82,7 @@ export default async function OfertasPage() {
             ))}
             {!offers.length && (
               <tr>
-                <td className="p-6 text-zinc-500" colSpan={5}>
+                <td className="p-6 text-ink/50" colSpan={5}>
                   Nenhuma oferta extraída. Importe um book para revisar.
                 </td>
               </tr>

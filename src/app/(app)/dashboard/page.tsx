@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PIPELINE_LABEL, PIPELINE_ORDER } from "@/domain/pipeline";
 import { formatBRL } from "@/lib/format";
 import { LeadBadge } from "@/components/status-badge";
+import { PageHeader } from "@/components/page-header";
 import Link from "next/link";
 import type { LeadStatus } from "@prisma/client";
 
@@ -51,60 +51,58 @@ export default async function DashboardPage({
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold" data-testid="heading-dashboard">
-          Dashboard comercial
-        </h1>
-        <p className="text-sm text-zinc-500">Funil completo: campanha → lead → pré-venda → venda → instalação.</p>
-        {params.forbidden && (
-          <p className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Você não tem permissão para a tela solicitada.
-          </p>
-        )}
-      </div>
+    <div>
+      <PageHeader
+        kicker="Visão do dia"
+        title="Dashboard comercial"
+        description="Do primeiro contato à instalação — sem planilha no meio."
+        titleTestId="heading-dashboard"
+      />
+      {params.forbidden && (
+        <p className="mb-6 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          Você não tem permissão para a tela solicitada.
+        </p>
+      )}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
         {kpis.map((k) => (
-          <Card key={k.label}>
-            <CardHeader className="pb-1">
-              <CardTitle className="text-xs font-medium text-zinc-500">{k.label}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-xl font-semibold">{k.value}</CardContent>
-          </Card>
+          <div key={k.label} className="surface px-4 py-4">
+            <p className="text-[11px] tracking-[0.14em] text-ink/40 uppercase">{k.label}</p>
+            <p className="font-heading mt-2 text-2xl text-ink">{k.value}</p>
+          </div>
         ))}
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Funil</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
+      <div className="surface mt-6 p-5">
+        <h2 className="font-heading text-2xl">Funil</h2>
+        <div className="mt-4 flex flex-wrap gap-2">
           {PIPELINE_ORDER.filter((s) => s !== "PERDIDO").map((status) => (
-            <div key={status} className="min-w-28 rounded-lg border bg-white p-3">
-              <div className="text-2xl font-semibold">{funnelMap[status] ?? 0}</div>
-              <div className="text-xs text-zinc-500">{PIPELINE_LABEL[status as LeadStatus]}</div>
+            <div key={status} className="min-w-28 rounded-2xl bg-[#efe6d9]/70 px-4 py-3">
+              <div className="font-heading text-3xl">{funnelMap[status] ?? 0}</div>
+              <div className="mt-1 text-[12px] text-ink/50">{PIPELINE_LABEL[status as LeadStatus]}</div>
             </div>
           ))}
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Leads recentes</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {!recent.length && <p className="text-sm text-zinc-500">Ainda não há leads neste período.</p>}
+        </div>
+      </div>
+      <div className="surface mt-6 p-5">
+        <h2 className="font-heading text-2xl">Leads recentes</h2>
+        <div className="mt-4 space-y-2">
+          {!recent.length && <p className="text-sm text-ink/50">Ainda não há leads neste período.</p>}
           {recent.map((lead) => (
-            <Link key={lead.id} href={`/leads/${lead.id}`} className="flex items-center justify-between rounded-md border px-3 py-2 hover:bg-zinc-50">
+            <Link
+              key={lead.id}
+              href={`/leads/${lead.id}`}
+              className="flex items-center justify-between rounded-2xl px-3 py-3 hover:bg-[#efe6d9]/80"
+            >
               <div>
-                <div className="font-medium">{lead.name ?? lead.phone}</div>
-                <div className="text-xs text-zinc-500">
+                <div className="text-[15px]">{lead.name ?? lead.phone}</div>
+                <div className="text-[13px] text-ink/45">
                   {lead.city ?? "sem cidade"} · {lead.campaign?.name ?? lead.origin}
                 </div>
               </div>
               <LeadBadge status={lead.status} />
             </Link>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

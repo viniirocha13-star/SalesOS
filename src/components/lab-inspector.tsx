@@ -33,7 +33,7 @@ export function LabInspector({ conversationId, refreshKey }: { conversationId: s
       .catch(() => setLab(null));
   }, [conversationId, refreshKey]);
 
-  if (!lab) return <p className="text-xs text-zinc-500">Carregando laboratório…</p>;
+  if (!lab) return <p className="text-sm text-ink/45">Carregando laboratório…</p>;
 
   const rows: [string, unknown][] = [
     ["MODEL USED", lab.model],
@@ -56,13 +56,15 @@ export function LabInspector({ conversationId, refreshKey }: { conversationId: s
   ];
 
   return (
-    <div className="space-y-2 text-xs">
-      <h2 className="text-sm font-semibold">Laboratório IA</h2>
-      <p className="text-[11px] text-zinc-500">Metadados estruturados. Sem chain-of-thought.</p>
+    <div className="space-y-2.5 text-[13px]">
+      <h2 className="font-heading text-xl">Laboratório IA</h2>
+      <p className="text-[12px] text-ink/45">Metadados da conversa. Sem raciocínio interno.</p>
       {rows.map(([label, value]) => (
-        <div key={label} className="rounded border bg-zinc-50 p-2">
-          <div className="font-medium text-zinc-600">{label}</div>
-          <pre className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap">{formatVal(value)}</pre>
+        <div key={label} className="rounded-2xl bg-[#efe6d9]/70 px-3 py-2.5">
+          <div className="text-[10px] tracking-[0.14em] text-ink/40 uppercase">{label}</div>
+          <pre className="mt-1 max-h-28 overflow-auto font-sans text-[13px] leading-relaxed whitespace-pre-wrap text-ink">
+            {formatVal(value)}
+          </pre>
         </div>
       ))}
     </div>

@@ -27,11 +27,11 @@ export default async function MapaPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Mapa de demanda</h1>
-      <p className="text-sm text-zinc-500">
+      <h1 className="font-heading text-4xl">Mapa de demanda</h1>
+      <p className="mt-2 text-sm text-ink/50">
         Localização aproximada para inteligência de cobertura. Sem exposição de endereço completo no mapa. Fase 3 aprofundará camadas de calor.
       </p>
-      <div className="relative h-[480px] overflow-hidden rounded-xl border bg-[#e8f0ee]">
+      <div className="relative h-[480px] overflow-hidden rounded-3xl border border-[#e0d5c6] bg-[#efe6d9]">
         <div className="absolute inset-6 rounded-lg border border-dashed border-emerald-700/30" />
         {points.map((p) => {
           const pos = xy(p.latitude!, p.longitude!);

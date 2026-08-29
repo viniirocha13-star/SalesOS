@@ -99,13 +99,20 @@ PRONTA → claim atômico (`updateMany` owner null) → EM_LANCAMENTO → APROVA
 
 Vitest: objeção Caucaia/80, memória R$89, variação de resposta, aceite, escalonamento. Playwright: laboratório envia “tá caro / 80” e não inventa desconto.
 
-## 17. Exemplos do laboratório (mock local)
+## 17. Exemplos reais do laboratório (esta execução, mock)
 
-Sem `OPENAI_API_KEY` nesta execução. O mock, com o mesmo contexto, gerou:
+Conversa nova no Playwright, modelo `dev_mock_llm`, latência 24–35 ms, 0 tokens (sem OpenAI):
 
-- Sem conta atual: pergunta se os R$80 são só internet.
-- Com `current_bill=89`: cita os R$89 e **não** pergunta “quanto você paga atualmente?”.
-- “Se fizer por 80 eu fecho”: recusa igualar R$80; aponta alternativa elegível se existir.
+1. Cliente: “Quero internet em Caucaia.”  
+   Tools: `update_customer_fact`, `search_eligible_offers`.  
+   Intent BUY / MEDIUM.  
+   Resposta: “Fibra 500 Mega Residencial, 500 Mega, R$ 99,90 no valor da oferta vigente. Wi-Fi 6, Instalação inclusa. Faz sentido pra você?”
+
+2. Cliente: “Rapaz, tá caro. A outra aqui é 80.”  
+   Tools: `register_objection`, `get_objection_context`.  
+   Intent OBJECTION / MEDIUM. Strategy `CLARIFY_COMPARISON`. Sem escalonamento.  
+   Resposta: “Quero entender a comparação que você está fazendo antes de insistir no plano. Isso que você citou é só internet ou tem mais serviço no valor?”  
+   Nenhum desconto inventado.
 
 ## 18–19. Latência e tokens
 

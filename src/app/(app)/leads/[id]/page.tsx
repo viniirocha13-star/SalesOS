@@ -28,10 +28,10 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold" data-testid="heading-lead">
+        <h1 className="font-heading text-4xl" data-testid="heading-lead">
           {lead.name ?? "Lead sem nome"}
         </h1>
-        <p className="text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-ink/50">
           {lead.phone} · {lead.city ?? "cidade não informada"} · origem {lead.origin}
         </p>
         <div className="mt-2">

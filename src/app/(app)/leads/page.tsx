@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LeadBadge } from "@/components/status-badge";
 import { Input } from "@/components/ui/input";
 import { PIPELINE_ORDER, PIPELINE_LABEL } from "@/domain/pipeline";
+import { PageHeader } from "@/components/page-header";
 import type { LeadStatus } from "@prisma/client";
 
 export default async function LeadsPage({
@@ -32,37 +33,37 @@ export default async function LeadsPage({
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold" data-testid="heading-leads">
-            Leads
-          </h1>
-          <p className="text-sm text-zinc-500">Pipeline comercial com origem e UTM persistidos.</p>
-        </div>
-        <form className="flex items-end gap-2" role="search">
-          <label className="text-sm">
-            Buscar leads
-            <Input name="q" placeholder="Nome, telefone ou cidade" defaultValue={q} className="mt-1 w-56" />
-          </label>
-          <button type="submit" className="h-9 rounded-lg border bg-white px-3 text-sm hover:bg-zinc-50">
-            Buscar
-          </button>
-        </form>
-      </div>
-      <div className="flex flex-wrap gap-1">
-        <Link href="/leads" className="rounded-full border bg-white px-3 py-1 text-xs">
+    <div>
+      <PageHeader
+        kicker="Pipeline"
+        title="Leads"
+        description="Origem e UTM ficam no cadastro. Sem sumir no meio do caminho."
+        titleTestId="heading-leads"
+        action={
+          <form className="flex items-end gap-2" role="search">
+            <label className="text-sm text-ink/60">
+              Buscar leads
+              <Input name="q" placeholder="Nome, telefone ou cidade" defaultValue={q} className="mt-1 h-11 w-56 rounded-full bg-cream" />
+            </label>
+            <button type="submit" className="h-11 rounded-full border border-[#e0d5c6] bg-cream px-4 text-sm hover:bg-white">
+              Buscar
+            </button>
+          </form>
+        }
+      />
+      <div className="mb-4 flex flex-wrap gap-1.5">
+        <Link href="/leads" className="rounded-full bg-espresso px-3 py-1 text-xs text-[#f6efe6]">
           Todos
         </Link>
         {PIPELINE_ORDER.map((s) => (
-          <Link key={s} href={`/leads?status=${s}`} className="rounded-full border bg-white px-3 py-1 text-xs hover:bg-zinc-50">
+          <Link key={s} href={`/leads?status=${s}`} className="rounded-full bg-[#efe6d9] px-3 py-1 text-xs text-ink/70 hover:bg-[#e4d8c6]">
             {PIPELINE_LABEL[s]}
           </Link>
         ))}
       </div>
-      <div className="overflow-x-auto rounded-xl border bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
+      <div className="surface overflow-x-auto">
+        <table className="data-table">
+          <thead>
             <tr>
               <th className="p-3">Cliente</th>
               <th className="p-3">Cidade</th>
@@ -75,7 +76,7 @@ export default async function LeadsPage({
           <tbody>
             {!leads.length && (
               <tr>
-                <td className="p-6 text-zinc-500" colSpan={6}>
+                <td className="p-6 text-ink/50" colSpan={6}>
                   Nenhum lead encontrado com este filtro.
                 </td>
               </tr>
@@ -86,7 +87,7 @@ export default async function LeadsPage({
                   <Link className="font-medium hover:underline" href={`/leads/${lead.id}`}>
                     {lead.name ?? "Sem nome"}
                   </Link>
-                  <div className="text-xs text-zinc-500">{lead.phone}</div>
+                  <div className="text-xs text-ink/45">{lead.phone}</div>
                 </td>
                 <td className="p-3">{lead.city ?? "—"}</td>
                 <td className="p-3">{lead.origin}</td>

@@ -30,8 +30,16 @@ export async function buildCommercialContext(conversationId: string, latestInbou
     need: conv.lead.productInterest ?? (facts.product_interest as string | undefined),
   });
   const signals = classifyIntentSignals(latestInbound);
-  const objection = /caro|puxado|concorr|pensar|fidel|instala/.test(latestInbound.toLowerCase())
-    ? await getObjectionContext(conversationId)
+  const inboundLower = latestInbound.toLowerCase();
+  const inferredObjection = /caro|puxado|preço|preco|\b80\b|concorr/.test(inboundLower)
+    ? "PRECO"
+    : /pensar|depois/.test(inboundLower)
+      ? "VAI_PENSAR"
+      : /caro|puxado|concorr|pensar|fidel|instala/.test(inboundLower)
+        ? "OUTROS"
+        : null;
+  const objection = inferredObjection || signals.intent === "OBJECTION"
+    ? await getObjectionContext(conversationId, inferredObjection ?? undefined)
     : null;
   const discovery = evaluateDiscovery({
     city: conv.lead.city,

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
 
 export default async function HomeOperadorPage() {
   const [queue, human, mine] = await Promise.all([
@@ -9,33 +9,20 @@ export default async function HomeOperadorPage() {
     prisma.conversation.count({ where: { aiEnabled: false } }),
   ]);
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Agora</h1>
-      <p className="text-sm text-zinc-500">O que precisa da sua ação neste momento.</p>
-      <div className="grid gap-3 md:grid-cols-3">
-        <Link href="/operacao">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Fila de lançamento</CardTitle>
-            </CardHeader>
-            <CardContent className="text-3xl font-semibold">{queue}</CardContent>
-          </Card>
+    <div>
+      <PageHeader kicker="Operação" title="Agora" description="O que precisa da sua ação neste momento." />
+      <div className="grid gap-4 md:grid-cols-3">
+        <Link href="/operacao" className="surface block p-6 transition-transform hover:-translate-y-0.5">
+          <p className="text-[12px] tracking-[0.14em] text-ink/40 uppercase">Fila de lançamento</p>
+          <p className="font-heading mt-3 text-5xl">{queue}</p>
         </Link>
-        <Link href="/inbox?filter=human">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Aguardando humano</CardTitle>
-            </CardHeader>
-            <CardContent className="text-3xl font-semibold">{human}</CardContent>
-          </Card>
+        <Link href="/inbox?filter=human" className="surface block p-6 transition-transform hover:-translate-y-0.5">
+          <p className="text-[12px] tracking-[0.14em] text-ink/40 uppercase">Aguardando humano</p>
+          <p className="font-heading mt-3 text-5xl">{human}</p>
         </Link>
-        <Link href="/inbox">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Conversas assumidas</CardTitle>
-            </CardHeader>
-            <CardContent className="text-3xl font-semibold">{mine}</CardContent>
-          </Card>
+        <Link href="/inbox" className="surface block p-6 transition-transform hover:-translate-y-0.5">
+          <p className="text-[12px] tracking-[0.14em] text-ink/40 uppercase">Conversas assumidas</p>
+          <p className="font-heading mt-3 text-5xl">{mine}</p>
         </Link>
       </div>
     </div>

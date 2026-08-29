@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { formatBRL } from "@/lib/format";
+import { PageHeader } from "@/components/page-header";
 
 export default async function CampanhasPage() {
   const campaigns = await prisma.campaign.findMany({
@@ -7,12 +8,14 @@ export default async function CampanhasPage() {
     orderBy: { createdAt: "desc" },
   });
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Campanhas</h1>
-      <p className="text-sm text-zinc-500">Cadeia obrigatória: Campaign → Lead → PreSale → Sale → Installation.</p>
-      <div className="overflow-x-auto rounded-xl border bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
+    <div>
+      <PageHeader
+        title="Campanhas"
+        description="Cadeia: campanha → lead → pré-venda → venda → instalação."
+      />
+      <div className="surface overflow-x-auto">
+        <table className="data-table">
+          <thead>
             <tr>
               <th className="p-3">Campanha</th>
               <th className="p-3">Canal</th>

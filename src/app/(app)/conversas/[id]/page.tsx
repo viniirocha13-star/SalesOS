@@ -37,10 +37,10 @@ export default function ConversaPage() {
       });
   }, [params.id, tick]);
 
-  if (!conv) return <p className="text-sm text-zinc-500">Carregando laboratório…</p>;
+  if (!conv) return <p className="text-sm text-ink/50">Carregando laboratório…</p>;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
+    <div className="grid gap-5 lg:grid-cols-3">
       <div className="lg:col-span-2">
         <ChatPanel
           conversationId={conv.id}
@@ -50,8 +50,8 @@ export default function ConversaPage() {
           onTurn={() => setTick((n) => n + 1)}
         />
       </div>
-      <div className="space-y-3 rounded-xl border bg-white p-4">
-        <h2 className="font-semibold">{conv.lead.name ?? conv.lead.phone}</h2>
+      <div className="surface space-y-4 p-5">
+        <h2 className="font-heading text-2xl">{conv.lead.name ?? conv.lead.phone}</h2>
         <LeadBadge status={conv.lead.status} />
         <p className="text-sm">Cidade: {conv.lead.city ?? "—"}</p>
         <p className="text-sm">Canal: {conv.channel}</p>
