@@ -83,7 +83,8 @@ test("Inbox → assumir → composer humano → devolver para IA", async ({ page
   await page.getByRole("link", { name: "Inbox" }).click();
   await page.getByRole("button", { name: /Conversa Maria Alves/ }).click();
   await expect(page.getByRole("heading", { name: "Lead" })).toBeVisible();
-  if (await page.getByTestId("return-to-ai").isEnabled()) {
+  await expect(page.getByText(/IA respondendo|Humano no comando/)).toBeVisible({ timeout: 10_000 });
+  if (await page.getByText("Humano no comando — IA pausada").isVisible()) {
     await page.getByTestId("return-to-ai").click();
     await expect(page.getByText("IA respondendo", { exact: true })).toBeVisible({ timeout: 10_000 });
   }

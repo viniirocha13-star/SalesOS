@@ -247,7 +247,7 @@ export function InboxClient() {
                   size="sm"
                   variant="outline"
                   data-testid="assume-conversation"
-                  disabled={!detail?.aiEnabled}
+                  disabled={!detail || !detail.aiEnabled}
                   onClick={async () => {
                     await fetch(`/api/conversations/${active}/handoff`, { method: "POST" });
                     open(active);
@@ -260,7 +260,7 @@ export function InboxClient() {
                   size="sm"
                   variant="secondary"
                   data-testid="return-to-ai"
-                  disabled={detail?.aiEnabled}
+                  disabled={!detail || detail.aiEnabled}
                   onClick={async () => {
                     await fetch(`/api/conversations/${active}/handoff`, { method: "DELETE" });
                     open(active);
