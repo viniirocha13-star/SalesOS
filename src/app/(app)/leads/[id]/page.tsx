@@ -71,7 +71,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de status</CardTitle>
+            <CardTitle>
+              <h2>Histórico de status</h2>
+            </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
             {lead.statusHistory.map((h) => (

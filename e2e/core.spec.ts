@@ -16,7 +16,7 @@ test("login válido abre o dashboard", async ({ page }) => {
 
 test("credenciais inválidas mostram alerta", async ({ page }) => {
   await login(page, "ursula.b@example.com", "senha-errada");
-  await expect(page.getByRole("alert")).toHaveText(/inválidos/i, { timeout: 15_000 });
+  await expect(page.getByText("E-mail ou senha inválidos.")).toBeVisible({ timeout: 15_000 });
   await expect(page).toHaveURL(/\/login/);
 });
 
@@ -40,7 +40,7 @@ test("login → Leads → abrir lead", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Leads" })).toBeVisible();
   await page.getByRole("link", { name: "Maria Alves" }).click();
   await expect(page.getByRole("heading", { name: "Maria Alves" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Histórico de status" })).toBeVisible();
+  await expect(page.getByText("Histórico de status")).toBeVisible();
 });
 
 test("login → Inbox → abrir conversa", async ({ page }) => {

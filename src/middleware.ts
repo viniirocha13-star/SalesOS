@@ -8,6 +8,9 @@ const { auth } = NextAuth(authConfig);
 
 export default auth((request) => {
   const { pathname } = request.nextUrl;
+  if (pathname.startsWith("/_next")) {
+    return NextResponse.next();
+  }
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/api/auth") ||
