@@ -1,23 +1,72 @@
 # Ambiente
 
-Copie `.env.example` → `.env`. Nunca commite secrets.
+Copie `.env.example` → `.env`. Nunca commite secrets. Nunca use `NEXT_PUBLIC_` para chaves.
 
-Porta do WEB (única fonte): `APP_PORT=43147`. URL: `APP_URL=http://127.0.0.1:43147`. Não espalhe a porta no código.
+## Porta
 
-Health do app ≠ Preview do Cursor: ver README e `docs/RUNBOOK.md` (“Cursor Preview vs Application Health”).
+Railway injeta `PORT`. O WEB usa `PORT || APP_PORT || 43147` e escuta em `APP_HOST=0.0.0.0`.
 
-Modelos de IA: apenas `AI_SALES_MODEL` (GPT-5.6 Luna). WhatsApp: `META_*` e `WHATSAPP_*`. Redis: `REDIS_URL`.
-
-Obrigatórias para o canal real:
+## Produção (WEB)
 
 ```
+DATABASE_URL
+REDIS_URL
+AUTH_SECRET
+AUTH_URL
+APP_URL
+ENCRYPTION_KEY
+# ou APP_ENCRYPTION_KEY
 OPENAI_API_KEY
 AI_SALES_MODEL
-META_APP_ID
+```
+
+Recomendado no WEB:
+
+```
+NODE_ENV=production
+APP_HOST=0.0.0.0
+AI_SALES_MODEL=gpt-5.6-luna
+OPENAI_API_STYLE=chat
+WHATSAPP_PROVIDER=mock
+```
+
+`AUTH_URL` e `APP_URL` devem ser a URL HTTPS pública (ex.: `https://xxxx.up.railway.app`).
+
+## Produção (WORKER)
+
+```
+DATABASE_URL
+REDIS_URL
+OPENAI_API_KEY
+AI_SALES_MODEL
+ENCRYPTION_KEY
+# ou APP_ENCRYPTION_KEY
+NODE_ENV=production
+```
+
+Mesmo Postgres e mesmo Redis do WEB.
+
+## Depois (WhatsApp Meta)
+
+```
+WHATSAPP_PROVIDER=meta
 META_APP_SECRET
 META_VERIFY_TOKEN
 META_ACCESS_TOKEN
 WHATSAPP_PHONE_NUMBER_ID
 WHATSAPP_BUSINESS_ACCOUNT_ID
-REDIS_URL
 ```
+
+Webhook futuro: `{APP_URL}/api/whatsapp/webhook`
+
+## Desenvolvimento
+
+```
+APP_PORT=43147
+APP_URL=http://127.0.0.1:43147
+AUTH_URL=http://127.0.0.1:43147
+```
+
+Sem `OPENAI_API_KEY` no desenvolvimento, o vendedor usa mock. Em `NODE_ENV=production` o mock **não** entra: sem chave a integração fica `NOT_CONFIGURED` e o atendimento IA é bloqueado.
+
+O seed de demo (`ursula.b@example.com` / senha de desenvolvimento) **não** roda em production sem `ALLOW_DEV_SEED=1`.

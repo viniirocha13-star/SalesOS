@@ -9,10 +9,23 @@ type Role =
   | "ANALISTA"
   | "ANALYST";
 
+const publicHttps = (process.env.AUTH_URL ?? process.env.APP_URL ?? "").startsWith("https://");
+
 export const authConfig = {
   trustHost: true,
   secret: process.env.AUTH_SECRET,
+  useSecureCookies: publicHttps || process.env.NODE_ENV === "production",
   session: { strategy: "jwt", maxAge: 60 * 60 * 8 },
+  cookies: {
+    sessionToken: {
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: publicHttps || process.env.NODE_ENV === "production",
+      },
+    },
+  },
   pages: { signIn: "/login" },
   providers: [],
   callbacks: {
@@ -35,7 +48,8 @@ export const authConfig = {
         pathname.startsWith("/api/auth") ||
         pathname.startsWith("/api/whatsapp/webhook") ||
         pathname.startsWith("/api/leads/capture") ||
-        pathname.startsWith("/api/health")
+        pathname.startsWith("/api/health") ||
+        pathname.startsWith("/api/ready")
       ) {
         return true;
       }

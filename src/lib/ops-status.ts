@@ -63,6 +63,17 @@ export async function collectOpsStatus() {
   };
 }
 
+export async function collectReadiness() {
+  const base = await collectOpsStatus();
+  const ready = base.database === "up" && base.redis === "up";
+  return {
+    ready,
+    database: base.database,
+    redis: base.redis,
+    web: base.web,
+  };
+}
+
 export async function collectOpsDiagnostics() {
   const base = await collectOpsStatus();
   let lastInboundAt: string | null = null;

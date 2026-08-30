@@ -1,10 +1,12 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import { assertDevSeedAllowed } from "../src/lib/seed-guard";
 
 const prisma = new PrismaClient();
 const password = "Brisa@2026";
 
 async function main() {
+  assertDevSeedAllowed();
   await prisma.commercialDecision.deleteMany();
   await prisma.complexityEscalation.deleteMany();
   await prisma.offerPresentation.deleteMany();

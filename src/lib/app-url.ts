@@ -1,7 +1,7 @@
 const DEFAULT_PORT = 43147;
 
 export function appPort(): number {
-  const raw = process.env.APP_PORT ?? process.env.PORT;
+  const raw = process.env.PORT ?? process.env.APP_PORT;
   const n = raw ? Number(raw) : DEFAULT_PORT;
   return Number.isFinite(n) && n > 0 ? n : DEFAULT_PORT;
 }

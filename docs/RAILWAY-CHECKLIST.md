@@ -1,0 +1,21 @@
+# Railway checklist
+
+- [ ] GitHub conectado
+- [ ] Railway project
+- [ ] Postgres
+- [ ] Redis
+- [ ] WEB
+- [ ] WORKER
+- [ ] DATABASE_URL
+- [ ] REDIS_URL
+- [ ] AUTH_SECRET
+- [ ] ENCRYPTION_KEY
+- [ ] OPENAI_API_KEY
+- [ ] AI_SALES_MODEL=gpt-5.6-luna
+- [ ] APP_URL
+- [ ] AUTH_URL
+- [ ] migrations
+- [ ] WEB health
+- [ ] Worker heartbeat
+- [ ] Login
+- [ ] Laboratório IA real

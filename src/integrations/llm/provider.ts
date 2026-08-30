@@ -171,14 +171,16 @@ function toChatMessage(m: LlmMessage): Record<string, unknown> {
   return { role: m.role, content: m.content };
 }
 
-/** Mock só em testes (Vitest) ou quando não há chave. Com OPENAI_API_KEY no app, usa API real. */
+/** Mock só em testes ou desenvolvimento sem chave. Produção nunca usa mock. */
 export function shouldUseMockLlm() {
   if (process.env.VITEST === "true" || process.env.NODE_ENV === "test") return true;
+  if (process.env.NODE_ENV === "production") return false;
   return !process.env.OPENAI_API_KEY;
 }
 
 export function getLlmProvider(): LlmProvider {
   if (shouldUseMockLlm()) return new DevMockLlmProvider();
+  if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY ausente");
   return new OpenAiLlmProvider();
 }
 

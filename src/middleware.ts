@@ -17,6 +17,7 @@ export default auth((request) => {
     pathname.startsWith("/api/whatsapp/webhook") ||
     pathname.startsWith("/api/leads/capture") ||
     pathname.startsWith("/api/health") ||
+    pathname.startsWith("/api/ready") ||
     pathname.startsWith("/_next")
   ) {
     if (pathname.startsWith("/login") && request.auth?.user) {

@@ -16,6 +16,10 @@
 | Porta 43147 em uso pelo WEB saudável | **não** matar nem “liberar” a porta |
 | WORKER OFFLINE no Diagnóstico | `npm run dev:worker`; Redis; heartbeat `ops:worker:heartbeat` |
 | `[auth][error] CredentialsSignin` + “E-mail ou senha inválidos.” | **EXPECTED_AUTH_REJECTION** — não corrigir |
+| `/api/ready` 503 | Postgres ou Redis indisponível |
+| ENV_VALIDATION_FAILED no boot | variável obrigatória ausente (nomes no log, sem valores) |
+| Seed bloqueado em produção | esperado; use `npm run admin:create`, não o seed de demo |
+| WORKER OFFLINE no Railway | serviço worker no ar? mesmo `REDIS_URL`? heartbeat `ops:worker:heartbeat` |
 
 ## Cursor Preview vs Application Health
 
@@ -46,6 +50,19 @@ Se HEALTHY e o Cursor mostrar “Preview not responding”:
 Aprovado e imutável por causa do Preview: login, dashboard, Inbox em colunas, tema claro, assumir/devolver IA, worker WhatsApp, smoke, e2e 9/9.
 
 Scripts: `npm run dev:web`, `npm run dev:worker`, `npm run dev` (processos independentes).
+
+## Railway
+
+| Serviço | Comando |
+|---|---|
+| WEB | `npm run start:web` |
+| WORKER | `npm run worker` |
+| Migration | `npx prisma migrate deploy` (só no release do WEB) |
+| Admin | `ADMIN_EMAIL ADMIN_NAME ADMIN_PASSWORD npm run admin:create` |
+
+Health de produção: `https://<domínio>/api/health` e `/api/ready`. Preview do Cursor não conta.
+
+Checklist: `docs/RAILWAY-CHECKLIST.md`.
 
 ## CredentialsSignin esperado em teste de senha inválida
 

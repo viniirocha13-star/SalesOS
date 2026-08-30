@@ -5,13 +5,17 @@ import { appOrigin, appPort, loginUrl, healthUrl } from "@/lib/app-url";
 describe("Porta e URLs", () => {
   it("usa APP_PORT sem espalhar fallback só aqui", () => {
     const prev = process.env.APP_PORT;
+    const prevPort = process.env.PORT;
     process.env.APP_PORT = "43147";
+    delete process.env.PORT;
     delete process.env.APP_URL;
     expect(appPort()).toBe(43147);
     expect(appOrigin()).toBe("http://127.0.0.1:43147");
     expect(loginUrl()).toBe("http://127.0.0.1:43147/login");
     expect(healthUrl()).toBe("http://127.0.0.1:43147/api/health");
     process.env.APP_PORT = prev;
+    if (prevPort === undefined) delete process.env.PORT;
+    else process.env.PORT = prevPort;
   });
 });
 

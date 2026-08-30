@@ -37,6 +37,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local OpenAI/WhatsApp smokes (nunca commitar)
+/scripts/lab-*-smoke.ts
+
 # uploaded offer books (originais)
 /uploads
 dump.rdb

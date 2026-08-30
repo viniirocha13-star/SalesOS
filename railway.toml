@@ -1,0 +1,14 @@
+# Defaults for the WEB service. The WORKER service uses the same repo/image
+# and overrides the start command in the Railway dashboard.
+# Do not set START_WORKER_IN_NEXT.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "npm run start:web"
+releaseCommand = "npx prisma migrate deploy"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
