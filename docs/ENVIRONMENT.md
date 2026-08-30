@@ -6,14 +6,13 @@ Porta do WEB (única fonte): `APP_PORT=43147`. URL: `APP_URL=http://127.0.0.1:43
 
 Health do app ≠ Preview do Cursor: ver README e `docs/RUNBOOK.md` (“Cursor Preview vs Application Health”).
 
-Modelos de IA: apenas `AI_*_MODEL`. WhatsApp: `META_*` e `WHATSAPP_*`. Redis: `REDIS_URL`.
+Modelos de IA: apenas `AI_SALES_MODEL` (GPT-5.6 Luna). WhatsApp: `META_*` e `WHATSAPP_*`. Redis: `REDIS_URL`.
 
 Obrigatórias para o canal real:
 
 ```
 OPENAI_API_KEY
 AI_SALES_MODEL
-AI_UTILITY_MODEL
 META_APP_ID
 META_APP_SECRET
 META_VERIFY_TOKEN

@@ -212,7 +212,7 @@ describe("Discovery não dita frase", () => {
 });
 
 describe("Escalonamento complexo", () => {
-  it("SALES → COMPLEX com motivo persistido", async () => {
+  it("caso difícil não troca de modelo", async () => {
     const { prisma } = await import("@/lib/prisma");
     const r = await routeComplexity("conv-hard", {
       consecutiveObjections: 3,
@@ -222,7 +222,7 @@ describe("Escalonamento complexo", () => {
       longNegotiation: true,
       complexComparison: true,
     });
-    expect(r.purpose).toBe("COMPLEX");
+    expect(r.purpose).toBe("SALES");
     expect(r.reason).toMatch(/multiple_objections|contradictions/);
     expect(prisma.complexityEscalation.create).toHaveBeenCalled();
   });

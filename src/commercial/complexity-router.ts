@@ -2,6 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { aiModelFor } from "@/lib/ai-models";
 import type { AiTask } from "@/lib/ai-models";
 
+/**
+ * Detecta conversa difícil para telemetria.
+ * Não troca de modelo: o atendimento comercial é sempre AI_SALES_MODEL (Luna).
+ */
 export async function routeComplexity(conversationId: string, signals: {
   consecutiveObjections: number;
   contradictions: boolean;
@@ -26,13 +30,14 @@ export async function routeComplexity(conversationId: string, signals: {
   if (!reasons.length) return { purpose: "SALES", reason: null };
 
   const reason = reasons.join(",");
+  const model = aiModelFor("SALES");
   await prisma.complexityEscalation.create({
     data: {
       conversationId,
-      fromModel: aiModelFor("SALES"),
-      toModel: aiModelFor("COMPLEX"),
-      reason,
+      fromModel: model,
+      toModel: model,
+      reason: `same_model:${reason}`,
     },
   });
-  return { purpose: "COMPLEX", reason };
+  return { purpose: "SALES", reason };
 }

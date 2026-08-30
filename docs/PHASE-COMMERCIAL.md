@@ -14,8 +14,8 @@ Message buffer + lock
 SalesOrchestrator
    ├─ CustomerFacts (persistência)
    ├─ buildCommercialContext (fatos, ofertas slim, viabilidade, discovery)
-   ├─ ComplexityRouter → SALES | COMPLEX
-   ├─ createSalesResponse (tools)
+   ├─ ComplexityRouter (telemetria; mesmo modelo)
+   ├─ createSalesResponse (tools, AI_SALES_MODEL = Luna)
    └─ CommercialDecision (metadados, sem chain-of-thought)
         ↓
 mensagem ao cliente (nunca preço inventado)
@@ -27,27 +27,23 @@ IA: interpretação, tom, pergunta seguinte, abordagem de objeção, momento de 
 
 ## 2. AI_SALES_MODEL
 
-Modelo via `AI_SALES_MODEL` (padrão de env: `gpt-5.6-terra`). Effort via `AI_SALES_REASONING_EFFORT=low`.
+Único modelo do atendimento: `AI_SALES_MODEL` (padrão `gpt-5.6-luna`). Effort `AI_SALES_REASONING_EFFORT=low`.
+
+GPT-5.6 Terra **não** é utilizado. Resumos e casos difíceis usam o mesmo Luna.
 
 Recebe o prompt de vendedor + JSON de contexto. Chama tools. Redige a mensagem.
 
 Sem `OPENAI_API_KEY`, `DevMockLlmProvider` simula tools e redação contextual — não é roteiro de produção.
 
-## 3. AI_UTILITY_MODEL
+## 3. Sem modelo COMPLEX / UTILITY separado
 
-`createUtilityResponse` / `createSummary` em `src/ai/openai.ts`. Uso: resumo de memória, classificação auxiliar. Sinais de intent/estratégia no backend são auxiliares; o vendedor continua vendo a conversa.
-
-## 4. AI_COMPLEX_MODEL
-
-Só quando o ComplexityRouter escala. Mesmas tools e mesmas proibições (sem desconto, sem cobertura inventada, sem alterar elegibilidade).
+`createUtilityResponse` e o ComplexityRouter continuam existindo, mas **não** apontam para outro ID. Não há `AI_COMPLEX_MODEL` nem `AI_UTILITY_MODEL`.
 
 ## 5. ComplexityRouter
 
-Escala se: ≥3 objeções recentes, contradição de fatos, baixa confiança, pedido explícito (`escalar_complexo`), negociação longa + objeção, indecisão persistente, comparação complexa, risco alto de perda, reclamação excepcional.
+Registra conversa difícil (≥3 objeções, contradição, etc.) em `ComplexityEscalation`. **Não troca de modelo:** `from_model` = `to_model` = Luna.
 
-Persiste `ComplexityEscalation`: reason, from_model, to_model, timestamp, conversation_id.
-
-Objeção isolada de preço **não** escala.
+Objeção isolada de preço **não** gera registro.
 
 ## 6. ObjectionEngine
 
@@ -136,7 +132,7 @@ Gravados em `CommercialDecision` e `AIExecution` (`latencyMs`, tokens, `estimate
 
 ## 26. Configurações que você ainda precisa fornecer
 
-- `OPENAI_API_KEY` e confirmação dos IDs `AI_SALES_MODEL` / `AI_COMPLEX_MODEL` / `AI_UTILITY_MODEL`
+- `OPENAI_API_KEY` e `AI_SALES_MODEL=gpt-5.6-luna`
 - Preços por milhão de tokens em `ModelPrice` (custo estimado)
 - API oficial de viabilidade, se existir
 - Campos obrigatórios por produto além de fibra

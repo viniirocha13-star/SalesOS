@@ -24,7 +24,7 @@ describe("ComplexityRouter", () => {
     expect(r.reason).toBeNull();
   });
 
-  it("escala com múltiplas objeções e registra motivo", async () => {
+  it("caso difícil permanece no mesmo modelo (Luna)", async () => {
     const { routeComplexity } = await import("@/commercial/complexity-router");
     const { prisma } = await import("@/lib/prisma");
     const r = await routeComplexity("c1", {
@@ -34,8 +34,12 @@ describe("ComplexityRouter", () => {
       salesRequestedEscalation: false,
       longNegotiation: true,
     });
-    expect(r.purpose).toBe("COMPLEX");
+    expect(r.purpose).toBe("SALES");
     expect(r.reason).toMatch(/multiple_objections/);
     expect(prisma.complexityEscalation.create).toHaveBeenCalled();
+    const payload = vi.mocked(prisma.complexityEscalation.create).mock.calls.at(-1)?.[0] as {
+      data: { fromModel: string; toModel: string };
+    };
+    expect(payload.data.fromModel).toBe(payload.data.toModel);
   });
 });

@@ -5,13 +5,13 @@ import { aiModelFor } from "@/lib/ai-models";
 export async function createSalesResponse(input: {
   messages: LlmMessage[];
   tools: LlmTool[];
-  purpose?: "SALES" | "COMPLEX";
+  purpose?: "SALES" | "UTILITY" | "COMPLEX";
 }): Promise<LlmResult> {
-  return getLlmProvider().complete({ ...input, purpose: input.purpose ?? "SALES" });
+  return getLlmProvider().complete({ ...input, purpose: "SALES" });
 }
 
 export async function createUtilityResponse(input: { messages: LlmMessage[]; tools?: LlmTool[] }): Promise<LlmResult> {
-  return getLlmProvider().complete({ messages: input.messages, tools: input.tools ?? [], purpose: "UTILITY" });
+  return getLlmProvider().complete({ messages: input.messages, tools: input.tools ?? [], purpose: "SALES" });
 }
 
 export async function createSummary(text: string): Promise<string> {

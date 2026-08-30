@@ -156,7 +156,7 @@ async function executeOrchestrator(input: {
 
   let result;
   try {
-    result = await createSalesResponse({ messages: history, tools, purpose: routed.purpose === "COMPLEX" ? "COMPLEX" : "SALES" });
+    result = await createSalesResponse({ messages: history, tools, purpose: "SALES" });
   } catch (error) {
     logError("orchestrator.openai_failed", { conversationId: conversation.id, message: String(error) });
     await markHumanReview(conversation.id, conversation.leadId, String(error));
@@ -182,7 +182,7 @@ async function executeOrchestrator(input: {
     result = await createSalesResponse({
       messages: history,
       tools,
-      purpose: routed.purpose === "COMPLEX" ? "COMPLEX" : "SALES",
+      purpose: "SALES",
     });
   }
 
@@ -197,7 +197,7 @@ async function executeOrchestrator(input: {
       selectedOfferId: commercial.ranking.best_offer?.id ?? null,
       toolCalls: toolNames,
       escalationReason: routed.reason,
-      model: result.model || aiModelFor(routed.purpose === "COMPLEX" ? "COMPLEX" : "SALES"),
+      model: result.model || aiModelFor("SALES"),
       latencyMs: Date.now() - started,
       inputTokens: result.usage?.input ?? 0,
       outputTokens: result.usage?.output ?? 0,

@@ -17,6 +17,17 @@ describe("AIRouter", () => {
     const previous = process.env.AI_SALES_MODEL;
     process.env.AI_SALES_MODEL = "test-sales-model";
     expect(aiModelFor("SALES")).toBe("test-sales-model");
+    expect(aiModelFor("COMPLEX")).toBe("test-sales-model");
+    expect(aiModelFor("UTILITY")).toBe("test-sales-model");
+    process.env.AI_SALES_MODEL = previous;
+  });
+
+  it("recusa Terra e Sol e cai em Luna", () => {
+    const previous = process.env.AI_SALES_MODEL;
+    process.env.AI_SALES_MODEL = "gpt-5.6-terra";
+    expect(aiModelFor("SALES")).toBe("gpt-5.6-luna");
+    process.env.AI_SALES_MODEL = "gpt-5.6-sol";
+    expect(aiModelFor("SALES")).toBe("gpt-5.6-luna");
     process.env.AI_SALES_MODEL = previous;
   });
 });
