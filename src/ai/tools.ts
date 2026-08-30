@@ -562,7 +562,13 @@ export async function runTool(
         CITY: Boolean(lead.city),
       };
       const missing = (defs.length ? defs.map((d) => d.fieldKey) : Object.keys(have)).filter((k) => !have[k]);
-      return { missing: missing.slice(0, 2), remaining: missing.length, hint: "solicite no máximo um ou dois campos" };
+      const askNow = missing.slice(0, 1);
+      return {
+        next_field: askNow[0] ?? null,
+        missing: askNow,
+        remaining: missing.length,
+        hint: "pergunte só next_field; no máximo um grupo pequeno; nunca a lista inteira",
+      };
     }
     case "save_customer_field": {
       const field = String(args.field ?? "").toUpperCase();
