@@ -15,11 +15,20 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       where: { conversationId: id },
       orderBy: { createdAt: "desc" },
     });
+    const lastExec = await prisma.aIExecution.findFirst({
+      where: { conversationId: id },
+      orderBy: { createdAt: "desc" },
+    });
     const ctxData = await buildCommercialContext(id, last?.body ?? "");
     const { getLaunchSnapshot } = await import("@/domain/launch-ready");
     const launch = await getLaunchSnapshot(ctxData.conv.leadId);
+    const { openaiConfigured } = await import("@/lib/ai-models");
+    const { getLlmProvider } = await import("@/integrations/llm/provider");
     return NextResponse.json({
-      model: decision?.model,
+      llm: openaiConfigured() ? "OPENAI" : getLlmProvider().name,
+      model: lastExec?.model ?? decision?.model,
+      estimatedCostUsd: lastExec?.estimatedCostUsd ?? decision?.estimatedCostUsd,
+      cachedTokens: lastExec?.cachedTokens ?? 0,
       salesStage: ctxData.payload.SalesStage,
       buyingIntent: ctxData.payload.BuyingIntent,
       customerFacts: ctxData.payload.CustomerFacts,
@@ -36,7 +45,11 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       strategyLabel: decision?.strategyLabel ?? ctxData.strategy,
       escalationReason: decision?.escalationReason,
       latencyMs: decision?.latencyMs,
-      tokens: { in: decision?.inputTokens, out: decision?.outputTokens },
+      tokens: {
+        in: lastExec?.inputTokens ?? decision?.inputTokens,
+        out: lastExec?.outputTokens ?? decision?.outputTokens,
+        cached: lastExec?.cachedTokens ?? 0,
+      },
       launch,
       source: ctxData.ranking.best_offer
         ? {

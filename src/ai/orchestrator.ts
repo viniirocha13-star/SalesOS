@@ -166,9 +166,19 @@ async function executeOrchestrator(input: {
   let loops = 0;
   while (result.toolCalls.length && loops < 6) {
     loops += 1;
+    history.push({
+      role: "assistant",
+      content: result.content,
+      toolCalls: result.toolCalls,
+    });
     for (const call of result.toolCalls) {
       if (["set_price", "create_discount", "override_eligibility"].includes(call.name)) {
-        history.push({ role: "tool", name: call.name, content: JSON.stringify({ error: "ferramenta_proibida" }) });
+        history.push({
+          role: "tool",
+          name: call.name,
+          toolCallId: call.id,
+          content: JSON.stringify({ error: "ferramenta_proibida" }),
+        });
         continue;
       }
       toolNames.push(call.name);
@@ -177,7 +187,12 @@ async function executeOrchestrator(input: {
         conversationId: conversation.id,
       });
       await recordExecution(conversation.id, conversation.leadId, result, call.name, payload);
-      history.push({ role: "tool", name: call.name, content: JSON.stringify(payload) });
+      history.push({
+        role: "tool",
+        name: call.name,
+        toolCallId: call.id,
+        content: JSON.stringify(payload),
+      });
     }
     result = await createSalesResponse({
       messages: history,
@@ -201,7 +216,12 @@ async function executeOrchestrator(input: {
       latencyMs: Date.now() - started,
       inputTokens: result.usage?.input ?? 0,
       outputTokens: result.usage?.output ?? 0,
-      estimatedCostUsd: await estimateCostUsd(result.model || aiModelFor("SALES"), result.usage?.input ?? 0, result.usage?.output ?? 0),
+      estimatedCostUsd: await estimateCostUsd(
+        result.model || aiModelFor("SALES"),
+        result.usage?.input ?? 0,
+        result.usage?.output ?? 0,
+        result.usage?.cached ?? 0,
+      ),
     },
   });
 
@@ -268,10 +288,12 @@ async function executeOrchestrator(input: {
   }
 
   await emit("AI_RESPONSE_REQUESTED", conversation.id, { messageId: outbound.id });
+  const { getLlmProvider } = await import("@/integrations/llm/provider");
   return {
     reply,
     blocked: false,
-    provider: result.model,
+    provider: getLlmProvider().name,
+    model: result.model,
     lab: {
       model: result.model,
       salesStage: fresh.salesStage,
@@ -356,13 +378,19 @@ function sanitizeReply(text?: string) {
 async function recordExecution(
   conversationId: string,
   leadId: string,
-  result: { model: string; intent?: string; usage?: { input?: number; output?: number } },
+  result: { model: string; intent?: string; usage?: { input?: number; output?: number; cached?: number } },
   toolName: string | null,
   payload: unknown,
 ) {
   const inputTokens = result.usage?.input ?? 0;
   const outputTokens = result.usage?.output ?? 0;
-  const estimatedCostUsd = await estimateCostUsd(result.model || aiModelFor("SALES"), inputTokens, outputTokens);
+  const cachedTokens = result.usage?.cached ?? 0;
+  const estimatedCostUsd = await estimateCostUsd(
+    result.model || aiModelFor("SALES"),
+    inputTokens,
+    outputTokens,
+    cachedTokens,
+  );
   await prisma.aIExecution.create({
     data: {
       conversationId,
@@ -373,6 +401,7 @@ async function recordExecution(
       purpose: "SALES",
       inputTokens,
       outputTokens,
+      cachedTokens,
       estimatedCostUsd,
       result: JSON.stringify(payload).slice(0, 4000),
     },

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { StartSimulatorButton } from "@/components/start-simulator-button";
 import { PageHeader } from "@/components/page-header";
+import { openaiConfigured, aiModelFor } from "@/lib/ai-models";
 
 export default async function ConversasPage() {
   const conversations = await prisma.conversation.findMany({
@@ -14,7 +15,11 @@ export default async function ConversasPage() {
       <PageHeader
         kicker="Laboratório"
         title="Conversas"
-        description="Teste a venda até o aceite e o envio dos dados. Sem OpenAI, o mock de desenvolvimento usa as mesmas tools."
+        description={
+          openaiConfigured()
+            ? `LLM: OPENAI · MODEL USED: ${aiModelFor("SALES")}. O book ACTIVE entra só pelas ofertas elegíveis, nunca o arquivo inteiro.`
+            : "Sem OPENAI_API_KEY o simulador usa mock de desenvolvimento com as mesmas tools."
+        }
         action={<StartSimulatorButton />}
       />
       <div className="grid gap-3 sm:grid-cols-2">

@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 
 type Lab = {
+  llm?: string;
   model?: string;
+  estimatedCostUsd?: number | null;
+  cachedTokens?: number | null;
   salesStage?: string;
   buyingIntent?: string;
   customerFacts?: Record<string, unknown>;
@@ -20,7 +23,7 @@ type Lab = {
   strategyLabel?: string;
   escalationReason?: string | null;
   latencyMs?: number | null;
-  tokens?: { in?: number | null; out?: number | null };
+  tokens?: { in?: number | null; out?: number | null; cached?: number | null };
   launch?: { phase?: string; missing?: string[]; accepted?: boolean; dataComplete?: boolean };
   source?: { bookId?: string | null; sheet?: string | null; row?: number | null };
 };
@@ -38,7 +41,12 @@ export function LabInspector({ conversationId, refreshKey }: { conversationId: s
   if (!lab) return <p className="text-sm text-ink/45">Carregando laboratório…</p>;
 
   const rows: [string, unknown][] = [
+    ["LLM", lab.llm === "openai" || lab.llm === "OPENAI" ? "OPENAI" : lab.llm],
     ["MODEL USED", lab.model],
+    ["TOKENS ENTRADA", lab.tokens?.in],
+    ["TOKENS SAÍDA", lab.tokens?.out],
+    ["TOKENS CACHE", lab.tokens?.cached ?? lab.cachedTokens],
+    ["CUSTO ESTIMADO", formatCost(lab.estimatedCostUsd)],
     ["SALES STAGE", lab.salesStage],
     ["BUYING INTENT", lab.buyingIntent],
     ["STRATEGY", lab.strategyLabel],
@@ -80,4 +88,9 @@ function formatVal(value: unknown) {
   if (value == null || value === "") return "—";
   if (typeof value === "string") return value;
   return JSON.stringify(value, null, 2);
+}
+
+function formatCost(value?: number | null) {
+  if (value == null || Number.isNaN(value)) return "—";
+  return `US$ ${value.toFixed(6)}`;
 }

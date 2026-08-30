@@ -1,7 +1,7 @@
 "use client";
 
 export const LAB_JOURNEY = [
-  { id: "ask", label: "1. Pedir internet", text: "Quero internet em Caucaia." },
+  { id: "ask", label: "1. Pedir internet", text: "Quero internet em Fortaleza." },
   { id: "accept", label: "2. Aceitar o plano", text: "Tá bom, pode fazer." },
   { id: "name", label: "3. Nome", text: "Maria Helena Costa" },
   { id: "cpf", label: "4. CPF", text: "529.982.247-25" },

@@ -28,6 +28,7 @@ export function ChatPanel({
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState(providerHint);
+  const [modelUsed, setModelUsed] = useState("");
 
   async function send(next = text) {
     if (!next.trim()) return;
@@ -50,6 +51,7 @@ export function ChatPanel({
       setMessages((m) => [...m, { id: crypto.randomUUID(), direction: "OUTBOUND", body: json.reply }]);
     }
     if (json.provider) setProvider(json.provider);
+    if (json.model) setModelUsed(json.model);
     onTurn?.();
   }
 
@@ -65,8 +67,13 @@ export function ChatPanel({
             <span className="rounded-full bg-red-50 px-3 py-1 text-xs text-red-800">IA pausada — handoff</span>
           )}
           <span className="rounded-full bg-[#efe6d9] px-3 py-1 text-xs text-ink/60">
-            {provider === "dev_mock_llm" ? "LLM: mock de desenvolvimento" : `LLM: ${provider}`}
+            {provider === "dev_mock_llm"
+              ? "LLM: mock de desenvolvimento"
+              : `LLM: ${provider === "openai" || provider === "OPENAI" ? "OPENAI" : provider}`}
           </span>
+          {modelUsed && provider !== "dev_mock_llm" ? (
+            <span className="rounded-full bg-teal/10 px-3 py-1 text-xs text-teal">MODEL USED: {modelUsed}</span>
+          ) : null}
         </div>
       </div>
       <ScrollArea className="flex-1 p-5">

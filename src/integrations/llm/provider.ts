@@ -1,6 +1,12 @@
 import { aiModelFor, reasoningEffortFor, type AiTask } from "@/lib/ai-models";
 
-export type LlmMessage = { role: "system" | "user" | "assistant" | "tool"; content: string; name?: string };
+export type LlmMessage = {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+  name?: string;
+  toolCallId?: string;
+  toolCalls?: LlmToolCall[];
+};
 
 export type LlmTool = {
   name: string;
@@ -15,7 +21,7 @@ export type LlmResult = {
   toolCalls: LlmToolCall[];
   model: string;
   intent?: string;
-  usage?: { input?: number; output?: number };
+  usage?: { input?: number; output?: number; cached?: number };
 };
 
 export interface LlmProvider {
@@ -41,28 +47,31 @@ export class OpenAiLlmProvider implements LlmProvider {
   }
 
   private async chatCompletions(key: string, model: string, input: { messages: LlmMessage[]; tools: LlmTool[] }): Promise<LlmResult> {
+    const body: Record<string, unknown> = {
+      model,
+      messages: input.messages.map(toChatMessage),
+    };
+    if (input.tools.length) {
+      body.tools = input.tools.map((t) => ({
+        type: "function",
+        function: { name: t.name, description: t.description, parameters: t.parameters },
+      }));
+    }
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: input.messages.map((m) => ({
-          role: m.role === "tool" ? "tool" : m.role,
-          content: m.content,
-          name: m.name,
-        })),
-        tools: input.tools.map((t) => ({
-          type: "function",
-          function: { name: t.name, description: t.description, parameters: t.parameters },
-        })),
-      }),
+      body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error("Falha na API OpenAI");
+    if (!res.ok) throw new Error(`Falha na API OpenAI (${res.status})`);
     const json = (await res.json()) as {
-      usage?: { prompt_tokens?: number; completion_tokens?: number };
+      usage?: {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+        prompt_tokens_details?: { cached_tokens?: number };
+      };
       choices: {
         message: {
-          content?: string;
+          content?: string | null;
           tool_calls?: { id: string; function: { name: string; arguments: string } }[];
         };
       }[];
@@ -71,7 +80,11 @@ export class OpenAiLlmProvider implements LlmProvider {
     return {
       model,
       content: msg?.content ?? "",
-      usage: { input: json.usage?.prompt_tokens, output: json.usage?.completion_tokens },
+      usage: {
+        input: json.usage?.prompt_tokens,
+        output: json.usage?.completion_tokens,
+        cached: json.usage?.prompt_tokens_details?.cached_tokens,
+      },
       toolCalls: (msg?.tool_calls ?? []).map((c) => ({
         id: c.id,
         name: c.function.name,
@@ -104,12 +117,16 @@ export class OpenAiLlmProvider implements LlmProvider {
     const json = (await res.json()) as {
       output_text?: string;
       output?: { type: string; name?: string; arguments?: string; call_id?: string }[];
-      usage?: { input_tokens?: number; output_tokens?: number };
+      usage?: { input_tokens?: number; output_tokens?: number; input_tokens_details?: { cached_tokens?: number } };
     };
     return {
       model,
       content: json.output_text ?? "",
-      usage: { input: json.usage?.input_tokens, output: json.usage?.output_tokens },
+      usage: {
+        input: json.usage?.input_tokens,
+        output: json.usage?.output_tokens,
+        cached: json.usage?.input_tokens_details?.cached_tokens,
+      },
       toolCalls: (json.output ?? [])
         .filter((o) => o.type === "function_call")
         .map((o) => ({
@@ -121,9 +138,33 @@ export class OpenAiLlmProvider implements LlmProvider {
   }
 }
 
+function toChatMessage(m: LlmMessage): Record<string, unknown> {
+  if (m.role === "tool") {
+    return { role: "tool", tool_call_id: m.toolCallId ?? m.name, content: m.content };
+  }
+  if (m.toolCalls?.length) {
+    return {
+      role: "assistant",
+      content: m.content || null,
+      tool_calls: m.toolCalls.map((c) => ({
+        id: c.id,
+        type: "function",
+        function: { name: c.name, arguments: JSON.stringify(c.arguments ?? {}) },
+      })),
+    };
+  }
+  return { role: m.role, content: m.content };
+}
+
+/** Mock só em testes (Vitest) ou quando não há chave. Com OPENAI_API_KEY no app, usa API real. */
+export function shouldUseMockLlm() {
+  if (process.env.VITEST === "true" || process.env.NODE_ENV === "test") return true;
+  return !process.env.OPENAI_API_KEY;
+}
+
 export function getLlmProvider(): LlmProvider {
-  if (process.env.OPENAI_API_KEY) return new OpenAiLlmProvider();
-  return new DevMockLlmProvider();
+  if (shouldUseMockLlm()) return new DevMockLlmProvider();
+  return new OpenAiLlmProvider();
 }
 
 export class DevMockLlmProvider implements LlmProvider {

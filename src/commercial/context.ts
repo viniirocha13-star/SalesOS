@@ -21,7 +21,6 @@ export async function buildCommercialContext(conversationId: string, latestInbou
         },
       },
       memory: true,
-      messages: { orderBy: { createdAt: "desc" }, take: 12 },
     },
   });
 
@@ -78,7 +77,6 @@ export async function buildCommercialContext(conversationId: string, latestInbou
       ...cpfPromptSafe(cpfCollected, cpfCollected),
     },
     ConversationSummary: conv.memory?.summary ?? null,
-    RecentMessages: [...conv.messages].reverse().map((m) => ({ actor: m.actor, body: m.body })),
     Viability: conv.lead.viabilityChecks[0]
       ? { result: conv.lead.viabilityChecks[0].result, source: conv.lead.viabilityChecks[0].source }
       : { result: "UNKNOWN" },

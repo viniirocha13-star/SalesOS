@@ -6,8 +6,14 @@ export default async function LaboratorioPage() {
     <div className="space-y-3">
       <h1 className="text-2xl font-semibold">Laboratório IA</h1>
       <p className="text-sm text-zinc-500">
-        O simulador em Conversas usa o mesmo orquestrador de produção, só troca o transporte. LLM:{" "}
-        {openaiConfigured() ? `OpenAI (${aiModelFor("SALES")})` : "DevMockLlmProvider (desenvolvimento)"}.
+        O simulador em Conversas usa o mesmo orquestrador de produção, só troca o transporte.{" "}
+        {openaiConfigured() ? (
+          <>
+            LLM: OPENAI · MODEL USED: {aiModelFor("SALES")}
+          </>
+        ) : (
+          <>LLM: DevMockLlmProvider (sem OPENAI_API_KEY)</>
+        )}
       </p>
       <p className="text-sm">
         Abra{" "}

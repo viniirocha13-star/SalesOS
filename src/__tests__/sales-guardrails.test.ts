@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { canSendFreeform } from "@/integrations/whatsapp/policy";
 import { aiModelFor } from "@/lib/ai-models";
-import { DevMockLlmProvider } from "@/integrations/llm/provider";
+import { DevMockLlmProvider, shouldUseMockLlm } from "@/integrations/llm/provider";
 
 describe("WhatsApp policy", () => {
   it("bloqueia freeform sem inbound", () => {
@@ -29,6 +29,12 @@ describe("AIRouter", () => {
     process.env.AI_SALES_MODEL = "gpt-5.6-sol";
     expect(aiModelFor("SALES")).toBe("gpt-5.6-luna");
     process.env.AI_SALES_MODEL = previous;
+  });
+});
+
+describe("LLM provider em teste", () => {
+  it("não chama OpenAI no Vitest mesmo com chave no ambiente", () => {
+    expect(shouldUseMockLlm()).toBe(true);
   });
 });
 
