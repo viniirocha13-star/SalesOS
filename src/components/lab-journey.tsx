@@ -17,23 +17,20 @@ export function LabJourney({
   onPick: (text: string) => void;
 }) {
   return (
-    <div className="border-t border-[#efe6d9] px-4 py-3">
+    <div className="shrink-0 border-t border-[#efe6d9] px-4 py-2">
       <p className="text-[11px] font-semibold tracking-[0.14em] text-ink/40 uppercase">Roteiro de teste</p>
-      <p className="mt-1 text-xs text-ink/50">
-        Clique na ordem. A IA conduz até o aceite; depois o cliente envia os dados e o card aparece em Tarefas.
-      </p>
-      <div className="mt-2 flex flex-wrap gap-2">
+      <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto pb-1">
         {LAB_JOURNEY.map((step) => (
           <button
             key={step.id}
             type="button"
             data-testid={`lab-step-${step.id}`}
             disabled={disabled}
+            title={step.text}
             onClick={() => onPick(step.text)}
-            className="rounded-full border border-[#efe6d9] bg-white px-3 py-1.5 text-left text-xs text-ink hover:border-teal disabled:opacity-40"
+            className="shrink-0 rounded-full border border-[#efe6d9] bg-white px-3 py-1.5 text-xs font-medium text-ink hover:border-teal disabled:opacity-40"
           >
-            <span className="font-medium">{step.label}</span>
-            <span className="mt-0.5 block max-w-[16rem] truncate text-ink/45">{step.text}</span>
+            {step.label}
           </button>
         ))}
       </div>

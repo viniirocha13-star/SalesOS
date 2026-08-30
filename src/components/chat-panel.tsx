@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { LabJourney } from "@/components/lab-journey";
 
 type Msg = { id: string; direction: "INBOUND" | "OUTBOUND"; body: string };
@@ -29,6 +28,11 @@ export function ChatPanel({
   const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState(providerHint);
   const [modelUsed, setModelUsed] = useState("");
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  }, [messages, loading]);
 
   async function send(next = text) {
     if (!next.trim()) return;
@@ -56,13 +60,13 @@ export function ChatPanel({
   }
 
   return (
-    <div className="surface flex h-[72vh] flex-col overflow-hidden">
-      <div className="flex items-center justify-between border-b border-[#efe6d9] px-5 py-3">
+    <div className="surface flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#efe6d9] px-5 py-3">
         <div>
           <p className="text-[11px] tracking-[0.16em] text-ink/40 uppercase">Simulador</p>
           <p className="font-heading text-xl">WhatsApp</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           {handoff && (
             <span className="rounded-full bg-red-50 px-3 py-1 text-xs text-red-800">IA pausada — handoff</span>
           )}
@@ -76,7 +80,7 @@ export function ChatPanel({
           ) : null}
         </div>
       </div>
-      <ScrollArea className="flex-1 p-5">
+      <div className="min-h-0 flex-1 overflow-y-auto p-5">
         <div className="space-y-3">
           {messages.map((m) => (
             <div key={m.id} className={m.direction === "INBOUND" ? "flex justify-end" : "flex justify-start"}>
@@ -92,10 +96,11 @@ export function ChatPanel({
             </div>
           ))}
           {loading && <div className="text-xs text-ink/40">Consultando ofertas e regras…</div>}
+          <div ref={bottomRef} />
         </div>
-      </ScrollArea>
+      </div>
       {queued && (
-        <div className="border-t border-teal/30 bg-teal/5 px-5 py-3 text-sm">
+        <div className="shrink-0 border-t border-teal/30 bg-teal/5 px-5 py-3 text-sm">
           <p className="font-medium text-teal">Cliente enviou os dados.</p>
           <p className="mt-0.5 text-ink/60">O pedido entrou na fila. O operador lança no sistema.</p>
           <Link href="/home" className="mt-2 inline-block text-sm font-medium text-teal" data-testid="lab-goto-tasks">
@@ -104,7 +109,7 @@ export function ChatPanel({
         </div>
       )}
       <LabJourney disabled={loading || handoff} onPick={(line) => void send(line)} />
-      <div className="flex gap-2 border-t border-[#efe6d9] p-4">
+      <div className="flex shrink-0 gap-2 border-t border-[#efe6d9] p-3 md:p-4">
         <Input
           value={text}
           onChange={(e) => setText(e.target.value)}
