@@ -417,12 +417,36 @@ export async function runTool(
         where: { id: ctx.conversationId },
         data: { status: "HANDOFF_HUMANO", aiEnabled: false, salesStage: "HUMAN_HANDOFF" },
       });
-      const reason = (args.reason as HandoffReason) || "IA_SEM_CONFIANCA";
+      const allowed: HandoffReason[] = [
+        "CLIENTE_SOLICITOU",
+        "IA_SEM_CONFIANCA",
+        "INFORMACAO_NAO_ENCONTRADA",
+        "RECLAMACAO",
+        "CASO_SENSIVEL",
+        "FALHA_VIABILIDADE",
+        "EXCECAO_COMERCIAL",
+        "FALHA_REPETIDA_IA",
+      ];
+      const raw = String(args.reason ?? "");
+      const reason = (allowed.includes(raw as HandoffReason) ? raw : "INFORMACAO_NAO_ENCONTRADA") as HandoffReason;
+      const notes = [args.notes, allowed.includes(raw as HandoffReason) ? null : raw]
+        .filter(Boolean)
+        .join(" — ")
+        .slice(0, 400);
       await prisma.humanHandoff.create({
         data: {
           conversationId: ctx.conversationId,
           reason,
-          notes: args.notes as string | undefined,
+          notes: notes || undefined,
+        },
+      });
+      await prisma.message.create({
+        data: {
+          conversationId: ctx.conversationId,
+          direction: "OUTBOUND",
+          actor: "SYSTEM",
+          body: "Não tenho essa informação com segurança. Um atendente assume a conversa.",
+          status: "SENT",
         },
       });
       return { handoff: true, reason };
