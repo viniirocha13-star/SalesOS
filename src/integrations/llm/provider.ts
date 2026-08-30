@@ -56,6 +56,8 @@ export class OpenAiLlmProvider implements LlmProvider {
         type: "function",
         function: { name: t.name, description: t.description, parameters: t.parameters },
       }));
+      // gpt-5.6-luna rejeita tools no Chat Completions se reasoning_effort ≠ none.
+      body.reasoning_effort = "none";
     }
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -116,12 +118,25 @@ export class OpenAiLlmProvider implements LlmProvider {
     if (!res.ok) return this.chatCompletions(key, model, input);
     const json = (await res.json()) as {
       output_text?: string;
-      output?: { type: string; name?: string; arguments?: string; call_id?: string }[];
+      output?: {
+        type: string;
+        name?: string;
+        arguments?: string;
+        call_id?: string;
+        content?: { type?: string; text?: string }[];
+      }[];
       usage?: { input_tokens?: number; output_tokens?: number; input_tokens_details?: { cached_tokens?: number } };
     };
+    const text =
+      json.output_text ??
+      (json.output ?? [])
+        .flatMap((o) => o.content ?? [])
+        .filter((c) => c.type === "output_text" && c.text)
+        .map((c) => c.text as string)
+        .join("\n");
     return {
       model,
-      content: json.output_text ?? "",
+      content: text,
       usage: {
         input: json.usage?.input_tokens,
         output: json.usage?.output_tokens,
