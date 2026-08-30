@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { selectOffers } from "@/offer-engine/select";
+import { toCustomerOffer } from "@/offer-engine/customer-view";
 import { evaluateDiscovery } from "@/commercial/discovery";
 import { classifyIntentSignals, classifyStrategy } from "@/commercial/intent";
 import { getObjectionContext } from "@/commercial/objection-engine";
@@ -28,6 +29,11 @@ export async function buildCommercialContext(conversationId: string, latestInbou
   const ranking = await selectOffers({
     city: conv.lead.city,
     need: conv.lead.productInterest ?? (facts.product_interest as string | undefined),
+    conversationChannel: conv.channel,
+    users: Number(facts.household_size) || undefined,
+    preferences: latestInbound,
+    streaming: /netflix/i.test(latestInbound) ? "Netflix" : /prime/i.test(latestInbound) ? "Amazon Prime" : null,
+    wantsChip: /chip|móvel|movel/i.test(latestInbound),
   });
   const signals = classifyIntentSignals(latestInbound);
   const inboundLower = latestInbound.toLowerCase();
@@ -81,8 +87,16 @@ export async function buildCommercialContext(conversationId: string, latestInbou
       alternative_offer: slimOffer(ranking.alternative_offer),
       cross_sell: slimOffer(ranking.cross_sell),
     },
-    PresentedOffers: conv.memory?.offersPresented ?? [],
     CurrentOffer: slimOffer(ranking.best_offer),
+    ProductKnowledgeHint: "use get_product_knowledge / search_products para fatos do book ACTIVE",
+    ForbiddenClaims: objection?.forbidden_claims ?? [
+      "inventar desconto",
+      "inventar cobertura",
+      "inventar preço",
+      "mostrar código de lançamento",
+      "afirmar consumo zero de dados",
+      "inventar relação velocidade/pessoas",
+    ],
     Objections: objection,
     BuyingIntent: signals.buyingIntent,
     Intent: signals.intent,
@@ -90,11 +104,6 @@ export async function buildCommercialContext(conversationId: string, latestInbou
       ? { id: conv.lead.acceptances[0].id, offerId: conv.lead.acceptances[0].offerId, at: conv.lead.acceptances[0].createdAt }
       : null,
     AllowedArguments: objection?.allowed_arguments ?? [],
-    ForbiddenClaims: objection?.forbidden_claims ?? [
-      "inventar desconto",
-      "inventar cobertura",
-      "inventar preço",
-    ],
     PendingInformation: discovery.missing_critical_information,
     Discovery: discovery,
     StrategyHint: strategy,
@@ -106,13 +115,7 @@ export async function buildCommercialContext(conversationId: string, latestInbou
   return { payload, signals, strategy, ranking, discovery, objection, conv };
 }
 
-function slimOffer(offer: { id: string; name: string; speedMbps: number | null; promotionalPriceCents: number | null; priceCents: number | null; benefits: string[] } | null) {
+function slimOffer(offer: Parameters<typeof toCustomerOffer>[0] | null) {
   if (!offer) return null;
-  return {
-    id: offer.id,
-    name: offer.name,
-    speedMbps: offer.speedMbps,
-    priceCents: offer.promotionalPriceCents ?? offer.priceCents,
-    benefits: offer.benefits.slice(0, 4),
-  };
+  return toCustomerOffer(offer);
 }

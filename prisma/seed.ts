@@ -128,7 +128,7 @@ async function main() {
       rules: "Preço promocional válido por 3 meses. Sem desconto adicional não cadastrado.",
       restrictions: "Sujeito a viabilidade técnica.",
       startsAt: new Date("2026-08-01"),
-      endsAt: new Date("2026-08-31"),
+      endsAt: new Date("2026-12-31"),
       source: "seed",
       bookId: book.id,
       originalText: "Fibra 500 Mega Caucaia R$99,90 / 3 meses depois R$119,90",
@@ -154,7 +154,7 @@ async function main() {
       rules: "Oferta exclusiva do book vigente.",
       restrictions: "Sujeito a viabilidade técnica.",
       startsAt: new Date("2026-08-01"),
-      endsAt: new Date("2026-08-31"),
+      endsAt: new Date("2026-12-31"),
       source: "seed",
       bookId: book.id,
       originalText: "Fibra 700 Mega Fortaleza",
@@ -176,7 +176,7 @@ async function main() {
       eligibility: "Cross-sell com fibra",
       rules: "Somente valores do book.",
       startsAt: new Date("2026-08-01"),
-      endsAt: new Date("2026-08-31"),
+      endsAt: new Date("2026-12-31"),
       source: "seed",
       bookId: book.id,
       originalText: "Móvel 20GB",
@@ -606,6 +606,25 @@ Seu objetivo é vender de forma natural, profissional e eficiente, respeitando i
     ],
     skipDuplicates: true,
   });
+
+  const { readFile } = await import("node:fs/promises");
+  const { join } = await import("node:path");
+  try {
+    const xlsxPath = join(process.cwd(), "fixtures/books/Ofertas_Brisanet_Fortaleza__CE_.xlsx");
+    const buffer = await readFile(xlsxPath);
+    const { importOfferBook } = await import("@/domain/offer-import");
+    const { activateOfferBook } = await import("@/domain/book-activate");
+    const imported = await importOfferBook({
+      fileName: "Ofertas_Brisanet_Fortaleza__CE_.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer,
+      importedById: admin.id,
+    });
+    await activateOfferBook(imported.book.id);
+    console.log(`Book Fortaleza: ${imported.rows} linhas, ${imported.offers.length} ofertas, ACTIVE`);
+  } catch (error) {
+    console.warn("Book Fortaleza não carregado no seed:", error);
+  }
 
   console.log("Seed ok. Logins: ursula.b@example.com / Brisa@2026");
 }

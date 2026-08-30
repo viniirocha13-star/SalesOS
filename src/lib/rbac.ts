@@ -29,6 +29,7 @@ const permissions: Record<string, Role[]> = {
   "offers.view": view,
   "offers.import": ["ADMIN", "SUPER_ADMIN", "MANAGER", "SUPERVISOR", "OPERADOR", "OPERATOR"],
   "offers.approve": ["ADMIN", "SUPER_ADMIN", "SUPERVISOR"],
+  "view_launch_codes": ops,
   "knowledge.view": ["ADMIN", "SUPER_ADMIN", "MANAGER", "SUPERVISOR", "ANALISTA", "ANALYST"],
   "knowledge.write": ["ADMIN", "SUPER_ADMIN", "SUPERVISOR"],
   "map.view": ["ADMIN", "SUPER_ADMIN", "MANAGER", "SUPERVISOR", "ANALISTA", "ANALYST"],

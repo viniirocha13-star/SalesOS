@@ -14,7 +14,7 @@ export function OfferImportForm() {
       setStatus("Selecione o book atual em CSV, XLSX ou PDF.");
       return;
     }
-    setStatus("Importando planos do arquivo...");
+    setStatus("Processando abas, normalizando e validando...");
     const fd = new FormData();
     fd.set("file", file);
     const res = await fetch("/api/offers/import", { method: "POST", body: fd });
@@ -23,16 +23,14 @@ export function OfferImportForm() {
       setStatus(json.error ?? "Falha ao importar o book.");
       return;
     }
-    setStatus(
-      `${json.offers?.length ?? 0} produtos já estão na IA, somados aos books anteriores.`,
-    );
+    router.push(`/ofertas/books/${json.book.id}`);
     router.refresh();
   }
 
   return (
     <div className="space-y-3">
       <label className="text-sm font-medium text-slate-800" htmlFor="book-file">
-        Arquivo do book vigente
+        Arquivo do book vigente (todas as abas)
       </label>
       <input
         id="book-file"
@@ -43,10 +41,10 @@ export function OfferImportForm() {
       />
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={upload} disabled={!file}>
-          {status.startsWith("Importando") ? "Enviando..." : "Enviar book para a IA"}
+          {status.startsWith("Processando") ? "Enviando..." : "Enviar book para revisão"}
         </Button>
-        <a className="text-sm text-teal underline" href="/samples/book-ofertas-exemplo.csv">
-          Baixar CSV de exemplo
+        <a className="text-sm text-teal underline" href="/samples/Ofertas_Brisanet_Fortaleza__CE_.xlsx">
+          Baixar book Fortaleza (fixture)
         </a>
       </div>
       {status && (

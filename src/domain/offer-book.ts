@@ -9,11 +9,11 @@ export async function retireOfferBook(bookId: string) {
     where: { bookId },
     data: { status: "EXPIRADA" },
   });
-  await prisma.offer.updateMany({
-    where: { bookId },
-    data: { bookId: null },
+  await prisma.productKnowledge.deleteMany({ where: { bookId } });
+  await prisma.offerBook.update({
+    where: { id: bookId },
+    data: { status: "ARCHIVED" },
   });
-  await prisma.offerBook.delete({ where: { id: bookId } });
 
   return { bookName: book.originalName, retiredOffers: retired.count };
 }

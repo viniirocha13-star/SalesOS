@@ -160,6 +160,32 @@ export const SALES_TOOLS = [
     },
   },
   {
+    name: "search_products",
+    description: "Busca produtos do book ACTIVE com filtros (categoria, cidade, canal, streaming, dados, velocidade).",
+    parameters: {
+      type: "object",
+      properties: {
+        category: { type: "string" },
+        city: { type: "string" },
+        streaming: { type: "string" },
+        speed: { type: "number" },
+        budget: { type: "number" },
+        acquisition_type: { type: "string" },
+        query: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "get_product_knowledge",
+    description: "Consulta facts aprovados do book (Netflix, roaming, instalação, Wi-Fi, apps, FWA, combo). Nunca inventa.",
+    parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+  },
+  {
+    name: "compare_products",
+    description: "Compara ofertas do book: preço, promoção, pós-promoção, velocidade/dados, streaming, apps.",
+    parameters: { type: "object", properties: { offerIds: { type: "array", items: { type: "string" } }, offerIdA: { type: "string" }, offerIdB: { type: "string" } } },
+  },
+  {
     name: "get_business_rule",
     description: "Consulta regra comercial aprovada na base de conhecimento.",
     parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
@@ -168,11 +194,13 @@ export const SALES_TOOLS = [
 
 const TOOL_ALIAS: Record<string, string> = {
   search_offers: "search_eligible_offers",
+  search_products: "search_eligible_offers",
   get_offer: "get_offer_details",
   get_customer: "get_customer_context",
   update_customer: "update_customer_fact",
   update_lead_stage: "set_sales_stage",
   request_human: "request_human_handoff",
+  compare_products: "compare_offers",
 };
 
 export async function runTool(
@@ -183,11 +211,18 @@ export async function runTool(
   const resolved = TOOL_ALIAS[name] ?? name;
   switch (resolved) {
     case "search_eligible_offers": {
+      const conv = await prisma.conversation.findUnique({ where: { id: ctx.conversationId } });
       const lead = await prisma.lead.findUniqueOrThrow({ where: { id: ctx.leadId } });
       const ranking = await selectOffers({
         city: (args.city as string) || lead.city,
         users: (args.users as number) || 3,
         need: (args.need as string) || lead.productInterest,
+        conversationChannel: conv?.channel,
+        category: (args.category as string) || undefined,
+        streaming: (args.streaming as string) || undefined,
+        maxPriceCents: args.budget != null ? Number(args.budget) * (Number(args.budget) < 1000 ? 100 : 1) : undefined,
+        acquisitionType: args.acquisition_type as never,
+        wantsChip: /chip|movel|móvel/i.test(String(args.query ?? args.need ?? "")),
         viabilityReliable: true,
       });
       const offers = [ranking.best_offer, ranking.alternative_offer, ranking.upsell, ranking.cross_sell].filter(Boolean);
@@ -208,10 +243,11 @@ export async function runTool(
           },
         });
       }
+      const { toCustomerOffer } = await import("@/offer-engine/customer-view");
       return {
-        offers,
+        offers: offers.map((o) => toCustomerOffer(o!)),
         reasoning_metadata: ranking.reasoning_metadata,
-        policy: "somente ofertas aprovadas",
+        policy: "somente ofertas aprovadas do book ACTIVE",
       };
     }
     case "get_offer_details": {
@@ -219,7 +255,8 @@ export async function runTool(
         where: { id: String(args.offerId), status: "APROVADA" },
       });
       if (!offer) return { error: "oferta_nao_aprovada_ou_inexistente" };
-      return { offer };
+      const { toCustomerOffer } = await import("@/offer-engine/customer-view");
+      return { offer: toCustomerOffer(offer) };
     }
     case "check_viability": {
       await transitionLead(ctx.leadId, "CONSULTANDO_VIABILIDADE", "tool");
@@ -430,13 +467,37 @@ export async function runTool(
       return (await getObjectionContext(ctx.conversationId, args.objection_type as string | undefined)) as unknown as Record<string, unknown>;
     }
     case "compare_offers": {
-      const a = await prisma.offer.findFirst({ where: { id: String(args.offerIdA), status: "APROVADA" } });
-      const b = await prisma.offer.findFirst({ where: { id: String(args.offerIdB), status: "APROVADA" } });
-      if (!a || !b) return { error: "oferta_nao_aprovada" };
+      const ids = (Array.isArray(args.offerIds) ? args.offerIds : [args.offerIdA, args.offerIdB]).filter(Boolean).map(String);
+      const found = await prisma.offer.findMany({ where: { id: { in: ids }, status: "APROVADA" } });
+      if (found.length < 2) return { error: "oferta_nao_aprovada" };
+      const { toCustomerOffer } = await import("@/offer-engine/customer-view");
+      const views = found.map((o) => toCustomerOffer(o));
       return {
-        a: { id: a.id, name: a.name, priceCents: a.promotionalPriceCents ?? a.priceCents, speed: a.speedMbps, benefits: a.benefits },
-        b: { id: b.id, name: b.name, priceCents: b.promotionalPriceCents ?? b.priceCents, speed: b.speedMbps, benefits: b.benefits },
+        comparison: views.map((o) => ({
+          id: o.id,
+          name: o.name,
+          price: o.promotionalPriceCents,
+          promotion: o.pricingPeriodDescription,
+          post_promotion_price: o.futurePriceCents,
+          speedMbps: o.speedMbps,
+          mobileDataGb: o.mobileDataGb,
+          streaming: o.includedStreaming,
+          apps: o.unlimitedApps,
+          benefits: o.benefits,
+        })),
+        differences: views.length === 2
+          ? {
+              priceDelta: (views[0].promotionalPriceCents ?? 0) - (views[1].promotionalPriceCents ?? 0),
+              speedDelta: (views[0].speedMbps ?? 0) - (views[1].speedMbps ?? 0),
+              streaming: [views[0].includedStreaming.map((s) => s.provider), views[1].includedStreaming.map((s) => s.provider)],
+            }
+          : null,
       };
+    }
+    case "get_product_knowledge": {
+      const { retrieveProductKnowledge } = await import("@/commercial/product-knowledge");
+      const docs = await retrieveProductKnowledge(String(args.query ?? ""), 5);
+      return { knowledge: docs, policy: "somente book ACTIVE aprovado" };
     }
     case "register_commercial_acceptance": {
       const presented = await prisma.offerPresentation.findFirst({

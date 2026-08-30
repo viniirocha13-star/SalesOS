@@ -30,8 +30,8 @@ export default async function OfertasPage() {
       <section className="surface p-5" id="upload-book">
         <h2 className="text-lg font-semibold">Enviar book para a IA</h2>
         <p className="mt-1 max-w-2xl text-sm text-slate-500">
-          O arquivo vira o catálogo de trabalho. Os produtos entram na IA na hora. Um book novo soma aos
-          anteriores. Excluir um book é independente — não precisa ter outro no lugar.
+          O arquivo passa por ingestão, normalização e validação. Nada entra no vendedor IA até um administrador{" "}
+          <strong>aprovar e ativar</strong>. O book ACTIVE anterior expira automaticamente.
         </p>
         <div className="mt-4">
           {canManage ? (
@@ -51,12 +51,14 @@ export default async function OfertasPage() {
           {books.map((b) => (
             <article key={b.id} className="surface flex items-start justify-between gap-4 p-5">
               <div>
-                <p className="font-medium text-slate-900">{b.originalName}</p>
+                <Link href={`/ofertas/books/${b.id}`} className="font-medium text-slate-900 hover:underline">
+                  {b.originalName}
+                </Link>
                 <p className="mt-1 text-sm text-slate-500">
-                  {b._count.offers} produto{b._count.offers === 1 ? "" : "s"} · {formatDateTime(b.createdAt)}
+                  {b.status} · {b.lineCount} linhas · {b._count.offers} ofertas · {formatDateTime(b.createdAt)}
                 </p>
               </div>
-              {canManage && <BookRetireButton bookId={b.id} name={b.originalName} />}
+              {canManage && b.status !== "ARCHIVED" && <BookRetireButton bookId={b.id} name={b.originalName} />}
             </article>
           ))}
         </div>

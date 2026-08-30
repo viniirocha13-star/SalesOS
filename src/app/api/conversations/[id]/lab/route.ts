@@ -38,6 +38,14 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       latencyMs: decision?.latencyMs,
       tokens: { in: decision?.inputTokens, out: decision?.outputTokens },
       launch,
+      source: ctxData.ranking.best_offer
+        ? {
+            bookId: ctxData.ranking.best_offer.bookId,
+            sheet: ctxData.ranking.best_offer.sourceSheet,
+            row: ctxData.ranking.best_offer.sourceRow,
+            offerId: ctxData.ranking.best_offer.id,
+          }
+        : null,
     });
   } catch (error) {
     return errorResponse(error);

@@ -22,6 +22,7 @@ type Lab = {
   latencyMs?: number | null;
   tokens?: { in?: number | null; out?: number | null };
   launch?: { phase?: string; missing?: string[]; accepted?: boolean; dataComplete?: boolean };
+  source?: { bookId?: string | null; sheet?: string | null; row?: number | null };
 };
 
 export function LabInspector({ conversationId, refreshKey }: { conversationId: string; refreshKey: number }) {
@@ -54,6 +55,7 @@ export function LabInspector({ conversationId, refreshKey }: { conversationId: s
     ["PRE-SALE STATUS", lab.preSaleStatus],
     ["LAUNCH PHASE", lab.launch?.phase],
     ["DADOS FALTANDO", lab.launch?.missing],
+    ["BOOK SOURCE", lab.source],
     ["ESCALATION", lab.escalationReason],
     ["LATENCY / TOKENS", `${lab.latencyMs ?? "—"} ms · ${lab.tokens?.in ?? "—"}/${lab.tokens?.out ?? "—"}`],
   ];

@@ -1,9 +1,9 @@
+import { prisma } from "@/lib/prisma";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
-import Papa from "papaparse";
-import * as XLSX from "xlsx";
-import { prisma } from "@/lib/prisma";
+import { parseWorkbook, type ParsedBookRow } from "@/domain/book-parse";
 import { getLlmProvider } from "@/integrations/llm/provider";
+import type { OfferStatus } from "@prisma/client";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads", "offer-books");
 
@@ -18,161 +18,165 @@ export async function importOfferBook(input: {
   const storagePath = path.join(UPLOAD_DIR, idPart);
   await writeFile(storagePath, input.buffer);
 
-  const extractedText = await extractText(input.fileName, input.mimeType, input.buffer);
   const book = await prisma.offerBook.create({
     data: {
       originalName: input.fileName,
       mimeType: input.mimeType,
       storagePath,
-      extractedText,
       importedById: input.importedById,
+      status: "PROCESSING",
     },
   });
 
-  const detected = await detectOffers(extractedText, input.fileName);
+  const rows = parseWorkbook(input.fileName, input.buffer);
+  const enriched = await assistComplexFields(rows);
   const offers = [];
-  for (const item of detected) {
+  for (const row of enriched) {
     const offer = await prisma.offer.create({
-      data: {
-        ...item,
-        bookId: book.id,
-        source: input.fileName,
-        status: "APROVADA",
-      },
+      data: mapRowToOffer(row, book.id, input.fileName),
     });
     offers.push(offer);
   }
 
-  return { book, offers };
+  const stats = computeStats(enriched);
+  const updated = await prisma.offerBook.update({
+    where: { id: book.id },
+    data: {
+      status: "REVIEW_REQUIRED",
+      extractedText: JSON.stringify({ sheets: [...new Set(enriched.map((r) => r.sourceSheet))], stats }),
+      lineCount: enriched.length,
+      offerCount: offers.length,
+      errorCount: enriched.filter((r) => r.errors.length).length,
+      warningCount: enriched.filter((r) => r.warnings.length).length,
+      stats,
+    },
+  });
+
+  return { book: updated, offers, rows: enriched.length, stats };
 }
 
-async function extractText(fileName: string, mime: string, buffer: Buffer): Promise<string> {
-  const lower = fileName.toLowerCase();
-  if (lower.endsWith(".csv") || mime.includes("csv")) {
-    return buffer.toString("utf8");
-  }
-  if (lower.endsWith(".xlsx") || lower.endsWith(".xls") || mime.includes("spreadsheet")) {
-    const wb = XLSX.read(buffer, { type: "buffer" });
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    return XLSX.utils.sheet_to_csv(sheet);
-  }
-  if (lower.endsWith(".pdf") || mime.includes("pdf")) {
-    return "[PDF armazenado. Extração de texto no ambiente atual é limitada; revise as ofertas detectadas.]";
-  }
-  if (mime.startsWith("image/")) {
-    return "[imagem recebida — extração visual ainda não habilitada; arquivo original armazenado]";
-  }
-  return buffer.toString("utf8");
+function mapRowToOffer(row: ParsedBookRow, bookId: string, fileName: string) {
+  const benefits = [
+    ...row.includedProducts,
+    ...row.unlimitedApps.map((a) => `${a} ilimitado`),
+    ...row.includedStreaming.map((s) => s.plan ? `${s.provider} ${s.plan}` : s.provider),
+  ];
+  return {
+    name: row.planName ?? `Linha ${row.sourceSheet}#${row.sourceRow}`,
+    category: row.category,
+    product: row.categoryNormalized,
+    speedMbps: row.speedMbps,
+    priceCents: row.regularReferencePriceCents,
+    promotionalPriceCents: row.promotionalPriceCents,
+    futurePriceCents: row.futurePriceCents,
+    promotionalPeriod: row.pricingPeriodDescription,
+    benefits,
+    loyalty: row.offerLevel || (row.acquisitionType === "RETENTION" ? "fidelizacao" : null),
+    installation: row.installationIncluded ? "Inclusa" : row.featuresOriginalText,
+    city: row.city,
+    region: null,
+    eligibility: row.acquisitionRaw,
+    rules: row.pricingOriginalText,
+    restrictions: row.salesChannel.raw,
+    startsAt: row.validFrom,
+    endsAt: row.validUntil,
+    source: fileName,
+    bookId,
+    originalText: row.originalText,
+    status: (row.errors.length ? "DETECTADA" : "AGUARDANDO_APROVACAO") as OfferStatus,
+    acquisitionType: row.acquisitionType,
+    salesChannelRaw: row.salesChannel.raw,
+    channelAllows: row.salesChannel.allows,
+    channelExcludes: row.salesChannel.excludes,
+    categoryNormalized: row.categoryNormalized,
+    offerLevel: row.offerLevel,
+    pricingPeriodDescription: row.pricingPeriodDescription,
+    pricingOriginalText: row.pricingOriginalText,
+    promotionDurationMonths: row.promotionDurationMonths,
+    includedProducts: row.includedProducts,
+    unlimitedApps: row.unlimitedApps,
+    launchCodes: row.launchCodes,
+    includedStreaming: row.includedStreaming,
+    featuresOriginalText: row.featuresOriginalText,
+    installationIncluded: row.installationIncluded,
+    wifiIncluded: row.wifiIncluded,
+    unlimitedCalls: row.unlimitedCalls,
+    unlimitedSms: row.unlimitedSms,
+    roamingGb: row.roamingGb,
+    deviceLoan: row.deviceLoan,
+    isCombo: row.isCombo,
+    mobileDataGb: row.mobileDataGb,
+    fwaAllowanceGb: row.fwaAllowanceGb,
+    fingerprint: row.fingerprint,
+    sourceRow: row.sourceRow,
+    sourceSheet: row.sourceSheet,
+    sourceFile: row.sourceFile,
+    validationErrors: row.errors,
+    validationWarnings: row.warnings,
+  };
 }
 
-type DetectedOffer = {
-  name: string;
-  category?: string;
-  product?: string;
-  speedMbps?: number;
-  priceCents?: number;
-  promotionalPriceCents?: number;
-  futurePriceCents?: number;
-  promotionalPeriod?: string;
-  benefits: string[];
-  loyalty?: string;
-  installation?: string;
-  city?: string;
-  region?: string;
-  eligibility?: string;
-  rules?: string;
-  restrictions?: string;
-  originalText: string;
-};
+function computeStats(rows: ParsedBookRow[]) {
+  const cat = (name: string) => rows.filter((r) => r.categoryNormalized === name).length;
+  return {
+    lines: rows.length,
+    offers: rows.filter((r) => r.planName).length,
+    categories: Object.fromEntries(
+      [...new Set(rows.map((r) => r.categoryNormalized).filter(Boolean))].map((c) => [c, cat(c as string)]),
+    ),
+    cities: [...new Set(rows.map((r) => r.city).filter(Boolean))],
+    combos: rows.filter((r) => r.isCombo).length,
+    fibra: cat("FIBRA"),
+    movel: cat("MOVEL"),
+    fwa: cat("FWA"),
+    withStreaming: rows.filter((r) => r.includedStreaming.length).length,
+    withApps: rows.filter((r) => r.unlimitedApps.length).length,
+    errors: rows.filter((r) => r.errors.length).length,
+    warnings: rows.filter((r) => r.warnings.length).length,
+    validity: {
+      from: minDate(rows.map((r) => r.validFrom)),
+      until: maxDate(rows.map((r) => r.validUntil)),
+    },
+  };
+}
 
-async function detectOffers(text: string, fileName: string): Promise<DetectedOffer[]> {
-  const tabular = parseTabular(text);
-  if (tabular.length) return tabular;
+function minDate(dates: (Date | null)[]) {
+  const v = dates.filter(Boolean) as Date[];
+  if (!v.length) return null;
+  return new Date(Math.min(...v.map((d) => d.getTime()))).toISOString();
+}
+function maxDate(dates: (Date | null)[]) {
+  const v = dates.filter(Boolean) as Date[];
+  if (!v.length) return null;
+  return new Date(Math.max(...v.map((d) => d.getTime()))).toISOString();
+}
 
+async function assistComplexFields(rows: ParsedBookRow[]) {
+  const hard = rows.filter((r) => r.warnings.includes("mensalidade_dificil_de_interpretar")).slice(0, 8);
   const llm = getLlmProvider();
-  if (llm.name === "openai") {
-    const result = await llm.complete({
-      messages: [
-        {
-          role: "system",
-          content:
-            "Extraia ofertas de telecom em JSON array. Campos: name, category, product, speedMbps, priceCents, promotionalPriceCents, futurePriceCents, promotionalPeriod, benefits[], loyalty, installation, city, region, eligibility, rules, restrictions, originalText. Não invente valores ausentes: omita. Preços em centavos BRL.",
-        },
-        { role: "user", content: text.slice(0, 12000) },
-      ],
-      tools: [],
-    });
+  if (!hard.length || llm.name !== "openai") return rows;
+  for (const row of hard) {
     try {
-      const parsed = JSON.parse(result.content) as DetectedOffer[];
-      if (Array.isArray(parsed) && parsed.length) return parsed;
+      const result = await llm.complete({
+        messages: [
+          {
+            role: "system",
+            content:
+              "Extraia JSON {promotion_duration_months, post_promotion_price_cents}. Não invente. Se incerto, omita. Preço em centavos.",
+          },
+          { role: "user", content: row.pricingPeriodDescription ?? "" },
+        ],
+        tools: [],
+      });
+      const json = JSON.parse(result.content) as { promotion_duration_months?: number; post_promotion_price_cents?: number };
+      if (json.promotion_duration_months) row.promotionDurationMonths = json.promotion_duration_months;
+      if (json.post_promotion_price_cents) row.futurePriceCents = json.post_promotion_price_cents;
+      row.warnings = row.warnings.filter((w) => w !== "mensalidade_dificil_de_interpretar");
     } catch {
-      /* fallthrough */
+      /* parser already kept original text */
     }
   }
-
-  return [
-    {
-      name: `Oferta detectada em ${fileName}`,
-      originalText: text.slice(0, 4000),
-      benefits: [],
-      rules: "Revisar manualmente. Extração automática incompleta.",
-    },
-  ];
+  return rows;
 }
 
-function parseTabular(text: string): DetectedOffer[] {
-  const parsed = Papa.parse<Record<string, string>>(text, { header: true, skipEmptyLines: true });
-  if (!parsed.data?.length || !parsed.meta.fields?.length) return [];
-  const fields = parsed.meta.fields.map((f) => f.toLowerCase());
-  const looksLikeOffers = fields.some((f) => /nome|plano|plano|produto|preco|preço|veloc/.test(f));
-  if (!looksLikeOffers) return [];
-
-  const offers: DetectedOffer[] = [];
-  for (const row of parsed.data) {
-    const get = (...keys: string[]) => {
-      const entry = Object.entries(row).find(([k]) => keys.includes(k.toLowerCase().trim()));
-      return entry?.[1]?.toString().trim();
-    };
-    const name = get("nome", "name", "plano", "oferta");
-    if (!name) continue;
-    offers.push({
-      name,
-      category: get("categoria", "category"),
-      product: get("produto", "product"),
-      speedMbps: parseSpeed(get("velocidade", "velocidade_mbps", "speed", "mbps")),
-      priceCents: parseMoney(get("preco", "preço", "price", "valor")),
-      promotionalPriceCents: parseMoney(get("preco_promocional", "preço_promocional", "promo")),
-      futurePriceCents: parseMoney(get("preco_futuro", "preço_futuro")),
-      promotionalPeriod: get("periodo_promocional", "periodo"),
-      benefits: (get("beneficios", "benefícios") ?? "")
-        .split(/[;|,]/)
-        .map((s) => s.trim())
-        .filter(Boolean),
-      loyalty: get("fidelidade", "loyalty"),
-      installation: get("instalacao", "instalação"),
-      city: get("cidade", "city"),
-      region: get("regiao", "região", "region"),
-      eligibility: get("elegibilidade"),
-      rules: get("regras"),
-      restrictions: get("restricoes", "restrições"),
-      originalText: JSON.stringify(row),
-    });
-  }
-  return offers;
-}
-
-function parseSpeed(value?: string) {
-  if (!value) return undefined;
-  const n = parseInt(value.replace(/\D/g, ""), 10);
-  return Number.isFinite(n) ? n : undefined;
-}
-
-function parseMoney(value?: string) {
-  if (!value) return undefined;
-  const cleaned = value.replace(/[R$\s]/g, "");
-  const n = cleaned.includes(",")
-    ? Number(cleaned.replace(/\./g, "").replace(",", "."))
-    : Number(cleaned);
-  if (!Number.isFinite(n)) return undefined;
-  return Math.round(n * 100);
-}
+export { computeStats };

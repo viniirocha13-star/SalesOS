@@ -216,9 +216,30 @@ async function executeOrchestrator(input: {
     return { reply: null, blocked: true, provider: "paused" };
   }
 
-  const reply =
+  const replyRaw =
     sanitizeReply(result.content) ||
     "Vou conferir nas ofertas aprovadas. Se não tiver informação confiável, te passo pra um atendente.";
+  const { validateCommercialClaims } = await import("@/commercial/claim-validator");
+  const { toCustomerOffer } = await import("@/offer-engine/customer-view");
+  const presented = [commercial.ranking.best_offer, commercial.ranking.alternative_offer, commercial.ranking.cross_sell]
+    .filter(Boolean)
+    .map((o) => toCustomerOffer(o!));
+  const claims = validateCommercialClaims(replyRaw, presented);
+  let reply = replyRaw;
+  if (!claims.ok) {
+    const best = presented[0];
+    reply = best
+      ? `${best.name}${best.speedMbps ? `, ${best.speedMbps} Mega` : ""}${
+          best.promotionalPriceCents
+            ? `, R$ ${(best.promotionalPriceCents / 100).toFixed(2).replace(".", ",")} no valor promocional cadastrado`
+            : ""
+        }${
+          best.futurePriceCents && best.futurePriceCents !== best.promotionalPriceCents
+            ? `. Depois do período cadastrado, R$ ${(best.futurePriceCents / 100).toFixed(2).replace(".", ",")}`
+            : ""
+        }. Sem inventar condição fora do book.`
+      : "Não posso afirmar esse detalhe sem estar no book vigente. Posso te mostrar só o que está aprovado.";
+  }
 
   const outbound = await prisma.message.create({
     data: {
@@ -288,6 +309,21 @@ async function persistImpliedFacts(leadId: string, conversationId: string, text:
       where: { leadId_key: { leadId, key: "city" } },
       update: { value: city },
       create: { leadId, key: "city", value: city, source: "conversation" },
+    });
+  }
+  const people = text.match(/somos\s+(\d+)/i);
+  if (people) {
+    await prisma.customerFact.upsert({
+      where: { leadId_key: { leadId, key: "household_size" } },
+      update: { value: people[1] },
+      create: { leadId, key: "household_size", value: people[1], source: "conversation" },
+    });
+  }
+  if (/netflix|globoplay|sky\+|prime/i.test(text)) {
+    await prisma.customerFact.upsert({
+      where: { leadId_key: { leadId, key: "usage_streaming" } },
+      update: { value: "HIGH" },
+      create: { leadId, key: "usage_streaming", value: "HIGH", source: "conversation" },
     });
   }
 }

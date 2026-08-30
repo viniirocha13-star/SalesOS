@@ -58,7 +58,7 @@ Login seed: `ursula.b@example.com` / `Brisa@2026`
 
 Outros usuários seed (mesma senha): `rachel.c@example.org` (supervisor), `zoe.m@example.net` e `tina.r@example.net` (operadores), `samuel.w@example.com` (analista).
 
-- Books e upload do book vigente `/ofertas#upload-book` (CSV/XLSX/PDF → aprovar oferta)
+- Books `/conhecimento` — explorer do book ACTIVE; upload e revisão em `/ofertas`
 - Inbox `/inbox`
 - Agora (operador) `/home`
 - Laboratório `/conversas` — roteiro de teste até o cliente enviar nome, CPF, endereço e CEP; o card aparece em Tarefas (`/home`)

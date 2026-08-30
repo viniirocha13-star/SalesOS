@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { formatBRL } from "@/lib/format";
 import { LaunchForm } from "@/components/launch-form";
 import { CopyButton } from "@/components/copy-data-button";
+import { auth } from "@/auth";
+import { can } from "@/lib/rbac";
+import type { Role } from "@prisma/client";
 
 export default async function OperacaoDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,6 +17,8 @@ export default async function OperacaoDetalhePage({ params }: { params: Promise<
     },
   });
   if (!item) notFound();
+  const session = await auth();
+  const showCodes = session?.user ? can(session.user.role as Role, "view_launch_codes") : false;
   const copyText = [
     `Nome: ${item.lead.name}`,
     `Telefone: ${item.lead.phone}`,
@@ -41,6 +46,11 @@ export default async function OperacaoDetalhePage({ params }: { params: Promise<
         <p>
           <strong>Oferta aceita:</strong> {item.offer.name} · {formatBRL(item.offer.promotionalPriceCents ?? item.offer.priceCents)}
         </p>
+        {showCodes && item.offer.launchCodes && (
+          <p className="rounded-lg bg-amber-50 p-3 text-amber-950">
+            <strong>Códigos de lançamento (operacional):</strong> {item.offer.launchCodes}
+          </p>
+        )}
         <p>
           <strong>Viabilidade:</strong> {item.viabilitySummary ?? item.lead.viabilityChecks[0]?.result ?? "—"}
         </p>

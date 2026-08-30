@@ -30,6 +30,35 @@ function offer(partial: Partial<Offer>): Offer {
     reviewNotes: null,
     createdAt: new Date(),
     updatedAt: new Date(),
+    acquisitionType: null,
+    salesChannelRaw: null,
+    channelAllows: [],
+    channelExcludes: [],
+    categoryNormalized: "FIBRA",
+    offerLevel: null,
+    pricingPeriodDescription: null,
+    pricingOriginalText: null,
+    promotionDurationMonths: null,
+    includedProducts: [],
+    unlimitedApps: [],
+    launchCodes: null,
+    includedStreaming: [],
+    featuresOriginalText: null,
+    installationIncluded: null,
+    wifiIncluded: null,
+    unlimitedCalls: null,
+    unlimitedSms: null,
+    roamingGb: null,
+    deviceLoan: null,
+    isCombo: false,
+    mobileDataGb: null,
+    fwaAllowanceGb: null,
+    fingerprint: null,
+    sourceRow: null,
+    sourceSheet: null,
+    sourceFile: null,
+    validationErrors: null,
+    validationWarnings: null,
     ...partial,
   };
 }
@@ -65,5 +94,21 @@ describe("Offer Engine — elegibilidade", () => {
   it("elegibilidade somente móvel bloqueia fibra", () => {
     expect(eligibilityAllows("somente móvel", "fibra")).toBe(false);
     expect(eligibilityAllows(null, "fibra")).toBe(true);
+  });
+
+  it("canal except digital recusa simulador", () => {
+    expect(
+      reasonNotEligible(
+        offer({ salesChannelRaw: "todos, exceto digital", channelExcludes: ["DIGITAL", "WHATSAPP", "SIMULATOR"] }),
+        { city: "Caucaia", conversationChannel: "SIMULATOR" },
+        now,
+      ),
+    ).toMatch(/canal/);
+  });
+
+  it("FWA sem allowFwa sai", () => {
+    expect(
+      reasonNotEligible(offer({ categoryNormalized: "FWA", category: "FWA" }), { city: "Caucaia" }, now),
+    ).toMatch(/FWA/);
   });
 });

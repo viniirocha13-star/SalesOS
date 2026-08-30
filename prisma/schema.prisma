@@ -58,6 +58,23 @@ enum OfferStatus {
   EXPIRADA
 }
 
+enum BookStatus {
+  UPLOADED
+  PROCESSING
+  REVIEW_REQUIRED
+  APPROVED
+  ACTIVE
+  EXPIRED
+  ARCHIVED
+}
+
+enum AcquisitionType {
+  NEW_CUSTOMER
+  RETENTION
+  MIGRATION
+  OTHER
+}
+
 enum KnowledgeType {
   OFERTAS
   FAQ
@@ -347,51 +364,106 @@ model Campaign {
 }
 
 model OfferBook {
-  id           String   @id @default(cuid())
-  originalName String
-  mimeType     String
-  storagePath  String
-  extractedText String? @db.Text
-  month        String?
-  importedById String?
-  createdAt    DateTime @default(now())
+  id             String     @id @default(cuid())
+  originalName   String
+  mimeType       String
+  storagePath    String
+  extractedText  String?    @db.Text
+  month          String?
+  importedById   String?
+  status         BookStatus @default(ACTIVE)
+  lineCount      Int        @default(0)
+  offerCount     Int        @default(0)
+  errorCount     Int        @default(0)
+  warningCount   Int        @default(0)
+  stats          Json?
+  activatedAt    DateTime?
+  createdAt      DateTime   @default(now())
 
-  offers Offer[]
+  offers    Offer[]
+  knowledge ProductKnowledge[]
 }
 
 model Offer {
-  id                 String      @id @default(cuid())
-  name               String
-  category           String?
-  product            String?
-  speedMbps          Int?
-  priceCents         Int?
-  promotionalPriceCents Int?
-  futurePriceCents   Int?
-  promotionalPeriod String?
-  benefits           String[]
-  loyalty            String?
-  installation       String?
-  city               String?
-  region             String?
-  eligibility        String?
-  rules              String?     @db.Text
-  restrictions       String?    @db.Text
-  startsAt           DateTime?
-  endsAt             DateTime?
-  source             String?
-  bookId             String?
-  originalText       String?     @db.Text
-  status             OfferStatus @default(DETECTADA)
-  reviewNotes        String?
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  id                      String      @id @default(cuid())
+  name                    String
+  category                String?
+  product                 String?
+  speedMbps               Int?
+  priceCents              Int?
+  promotionalPriceCents   Int?
+  futurePriceCents        Int?
+  promotionalPeriod       String?
+  benefits                String[]
+  loyalty                 String?
+  installation            String?
+  city                    String?
+  region                  String?
+  eligibility             String?
+  rules                   String?     @db.Text
+  restrictions            String?     @db.Text
+  startsAt                DateTime?
+  endsAt                  DateTime?
+  source                  String?
+  bookId                  String?
+  originalText            String?     @db.Text
+  status                  OfferStatus @default(DETECTADA)
+  reviewNotes             String?
+  acquisitionType         AcquisitionType?
+  salesChannelRaw         String?
+  channelAllows           String[]    @default([])
+  channelExcludes         String[]    @default([])
+  categoryNormalized      String?
+  offerLevel              String?
+  pricingPeriodDescription String?
+  pricingOriginalText     String?
+  promotionDurationMonths Int?
+  includedProducts        String[]    @default([])
+  unlimitedApps           String[]    @default([])
+  launchCodes             String?     @db.Text
+  includedStreaming       Json?
+  featuresOriginalText    String?
+  installationIncluded    Boolean?
+  wifiIncluded            Boolean?
+  unlimitedCalls          Boolean?
+  unlimitedSms            Boolean?
+  roamingGb               Float?
+  deviceLoan              Boolean?
+  isCombo                 Boolean     @default(false)
+  mobileDataGb            Int?
+  fwaAllowanceGb          Int?
+  fingerprint             String?
+  sourceRow               Int?
+  sourceSheet             String?
+  sourceFile              String?
+  validationErrors        Json?
+  validationWarnings      Json?
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
 
   book     OfferBook? @relation(fields: [bookId], references: [id])
   preSales PreSale[]
 
   @@index([status])
   @@index([city])
+  @@index([fingerprint])
+  @@index([categoryNormalized])
+}
+
+model ProductKnowledge {
+  id         String   @id @default(cuid())
+  bookId     String
+  category   String?
+  title      String
+  queryTerms String[]
+  facts      Json
+  content    String   @db.Text
+  approved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  book OfferBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
 }
 
 model KnowledgeDocument {

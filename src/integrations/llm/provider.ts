@@ -160,7 +160,10 @@ export class DevMockLlmProvider implements LlmProvider {
       calls.push({ id: "t2", name: "get_objection_context", arguments: { objection_type: "PRECO" } });
     } else if (/viab|cep|rua |bairro|endere/.test(lower)) {
       calls.push({ id: "t1", name: "check_viability", arguments: extractLocation(lastUser) });
-    } else if (/plano|oferta|preço|preco|mega|internet|melhor|quanto/.test(lower)) {
+    } else if (/netflix|roaming|instala|wi-?fi|ilimitado|amazon|prime|fwa\b/.test(lower) && !/quero internet|caro|aceito|pode fazer/.test(lower)) {
+      calls.push({ id: "t1", name: "get_product_knowledge", arguments: { query: lastUser } });
+      calls.push({ id: "t2", name: "search_eligible_offers", arguments: { query: lastUser, ...extractLocation(lastUser) } });
+    } else if (/plano|oferta|preço|preco|mega|internet|melhor|quanto|combo/.test(lower)) {
       const city = extractLocation(lastUser).city;
       if (city) calls.push({ id: "t0", name: "update_customer_fact", arguments: { key: "city", value: city } });
       calls.push({ id: "t1", name: "search_eligible_offers", arguments: { query: lastUser, city } });
@@ -222,6 +225,18 @@ function composeFromTools(userText: string, toolJson: string): string {
         return "Por esse endereço a consulta autorizada não confirma cobertura. Posso registrar seu interesse pra expansão.";
       }
       return "Ainda não tenho um retorno confiável de cobertura. Não vou te afirmar que tem sinal. Posso pedir uma checagem manual.";
+    }
+    if (data.knowledge?.length) {
+      const k = data.knowledge[0];
+      return `${k.title}: ${String(k.content).split("\n")[0]}`;
+    }
+    if (data.comparison?.length) {
+      return data.comparison
+        .map((o: { name: string; price?: number; speedMbps?: number }) => {
+          const price = o.price != null ? `R$ ${(o.price / 100).toFixed(2).replace(".", ",")}` : "";
+          return `${o.name} ${o.speedMbps ? `${o.speedMbps} Mega` : ""} ${price}`.trim();
+        })
+        .join(" · ");
     }
     if (data.offers?.length) {
       const o = data.offers[0];
