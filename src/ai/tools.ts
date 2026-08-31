@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { selectOffers } from "@/offer-engine/select";
-import { getViabilityProvider } from "@/integrations/viability/provider";
 import { createPreSale } from "@/domain/presale";
 import { transitionLead } from "@/domain/leads";
 import { retrieveKnowledge } from "@/ai/rag";
 import { emit } from "@/events/bus";
 import type { HandoffReason, LeadStatus, ObjectionCategory } from "@prisma/client";
+import { classifyObjectionTaxonomy, taxonomyToPrisma } from "@/commercial/objection-taxonomy";
 
 export const SALES_TOOLS = [
   {
@@ -117,7 +117,8 @@ export const SALES_TOOLS = [
   },
   {
     name: "check_viability",
-    description: "Consulta viabilidade. Nunca afirmar VIAVEL sem fonte confiável.",
+    description:
+      "Geocodifica o endereço e consulta a API oficial (se houver). Sem API, entra na fila para o operador olhar a caixa. Nunca afirmar VIAVEL sem reliable=true.",
     parameters: {
       type: "object",
       properties: {
@@ -125,6 +126,8 @@ export const SALES_TOOLS = [
         zipCode: { type: "string" },
         city: { type: "string" },
         neighborhood: { type: "string" },
+        latitude: { type: "number" },
+        longitude: { type: "number" },
       },
     },
   },
@@ -310,39 +313,15 @@ export async function runTool(
       return { offer: toCustomerOffer(offer) };
     }
     case "check_viability": {
-      await transitionLead(ctx.leadId, "CONSULTANDO_VIABILIDADE", "tool");
-      const provider = getViabilityProvider();
-      const result = await provider.check({
+      const { runViabilityForLead } = await import("@/domain/viability");
+      return runViabilityForLead(ctx.leadId, {
         address: args.address as string | undefined,
         zipCode: args.zipCode as string | undefined,
         city: args.city as string | undefined,
         neighborhood: args.neighborhood as string | undefined,
+        latitude: args.latitude as number | undefined,
+        longitude: args.longitude as number | undefined,
       });
-      await prisma.viabilityCheck.create({
-        data: {
-          leadId: ctx.leadId,
-          address: args.address as string | undefined,
-          zipCode: args.zipCode as string | undefined,
-          city: args.city as string | undefined,
-          neighborhood: args.neighborhood as string | undefined,
-          result: result.result,
-          source: result.source,
-          details: result.details as object,
-        },
-      });
-      if (args.city) {
-        await prisma.lead.update({
-          where: { id: ctx.leadId },
-          data: {
-            city: String(args.city),
-            address: (args.address as string) || undefined,
-            zipCode: args.zipCode as string | undefined,
-            neighborhood: args.neighborhood as string | undefined,
-          },
-        });
-      }
-      await emit("VIABILITY_CHECKED", ctx.leadId, { result: result.result, source: result.source });
-      return { viability: { ...result, city: args.city } };
     }
     case "get_customer_context": {
       const lead = await prisma.lead.findUnique({
@@ -744,6 +723,13 @@ export async function runTool(
         NEIGHBORHOOD: { neighborhood: value },
       };
       if (map[field]) await prisma.lead.update({ where: { id: ctx.leadId }, data: map[field] });
+      if (["ADDRESS", "CEP", "CITY", "NEIGHBORHOOD"].includes(field)) {
+        const { runViabilityForLead } = await import("@/domain/viability");
+        const fresh = await prisma.lead.findUniqueOrThrow({ where: { id: ctx.leadId } });
+        if (fresh.address || fresh.zipCode) {
+          await runViabilityForLead(ctx.leadId);
+        }
+      }
       if (field === "EMAIL") {
         await prisma.customer.upsert({
           where: { phone: lead.phone },
@@ -778,17 +764,7 @@ export async function runTool(
 }
 
 function classifyObjection(text: string): ObjectionCategory {
-  const t = text.toLowerCase();
-  if (/preço|preco|caro|valor/.test(t)) return "PRECO";
-  if (/pensar|depois/.test(t)) return "VAI_PENSAR";
-  if (/vivo|claro|tim|oi|concorr/.test(t)) return "CONCORRENTE";
-  if (/fidel/.test(t)) return "FIDELIDADE";
-  if (/instala/.test(t)) return "INSTALACAO";
-  if (/família|familia|esposo|esposa/.test(t)) return "CONVERSAR_COM_FAMILIA";
-  if (/já tenho|ja tenho/.test(t)) return "JA_POSSUI_INTERNET";
-  if (/portab/.test(t)) return "PORTABILIDADE";
-  if (/não quero|nao quero|sem interesse/.test(t)) return "SEM_INTERESSE";
-  return "OUTROS";
+  return taxonomyToPrisma(classifyObjectionTaxonomy(text));
 }
 
 function formatBRL(cents?: number | null) {

@@ -18,6 +18,11 @@ export default async function OperacaoPage() {
         title="Operação · Fila de lançamento"
         description="O cliente já enviou os dados. O operador lança o pedido no sistema."
       />
+      <p className="mb-4 text-sm">
+        <Link className="font-medium text-teal hover:underline" href="/operacao/viabilidade">
+          Fila de viabilidade (olhar a caixa) →
+        </Link>
+      </p>
       <div className="surface overflow-x-auto">
         <table className="data-table">
           <thead>

@@ -26,6 +26,10 @@ type Lab = {
   tokens?: { in?: number | null; out?: number | null; cached?: number | null };
   launch?: { phase?: string; missing?: string[]; accepted?: boolean; dataComplete?: boolean };
   source?: { bookId?: string | null; sheet?: string | null; row?: number | null };
+  routerReason?: string | null;
+  labStack?: string | null;
+  modelCounts?: { terra?: number; sol?: number; luna?: number };
+  conversationCostUsd?: number | null;
 };
 
 export function LabInspector({ conversationId, refreshKey }: { conversationId: string; refreshKey: number }) {
@@ -43,6 +47,10 @@ export function LabInspector({ conversationId, refreshKey }: { conversationId: s
   const rows: [string, unknown][] = [
     ["LLM", lab.llm === "openai" || lab.llm === "OPENAI" ? "OPENAI" : lab.llm],
     ["MODEL USED", lab.model],
+    ["ROUTER REASON", lab.escalationReason ?? lab.routerReason],
+    ["LAB STACK", lab.labStack],
+    ["TERRA / SOL / LUNA", lab.modelCounts],
+    ["CUSTO TOTAL CONVERSA", formatCost(lab.conversationCostUsd)],
     ["TOKENS ENTRADA", lab.tokens?.in],
     ["TOKENS SAÍDA", lab.tokens?.out],
     ["TOKENS CACHE", lab.tokens?.cached ?? lab.cachedTokens],

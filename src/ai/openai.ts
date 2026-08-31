@@ -7,11 +7,11 @@ export async function createSalesResponse(input: {
   tools: LlmTool[];
   purpose?: "SALES" | "UTILITY" | "COMPLEX";
 }): Promise<LlmResult> {
-  return getLlmProvider().complete({ ...input, purpose: "SALES" });
+  return getLlmProvider().complete({ ...input, purpose: input.purpose ?? "SALES" });
 }
 
 export async function createUtilityResponse(input: { messages: LlmMessage[]; tools?: LlmTool[] }): Promise<LlmResult> {
-  return getLlmProvider().complete({ messages: input.messages, tools: input.tools ?? [], purpose: "SALES" });
+  return getLlmProvider().complete({ messages: input.messages, tools: input.tools ?? [], purpose: "UTILITY" });
 }
 
 export async function createSummary(text: string): Promise<string> {

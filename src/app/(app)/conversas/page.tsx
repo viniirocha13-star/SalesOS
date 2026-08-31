@@ -17,7 +17,7 @@ export default async function ConversasPage() {
         title="Conversas"
         description={
           openaiConfigured()
-            ? `LLM: OPENAI · MODEL USED: ${aiModelFor("SALES")}. O book ACTIVE entra só pelas ofertas elegíveis, nunca o arquivo inteiro.`
+            ? `Stacks: Luna · Terra · Terra+Sol. Vendedor: ${aiModelFor("SALES")} · Sol: ${aiModelFor("COMPLEX")} · Utility: ${aiModelFor("UTILITY")}. Book só pelas tools.`
             : "Sem OPENAI_API_KEY o simulador usa mock de desenvolvimento com as mesmas tools."
         }
         action={<StartSimulatorButton />}

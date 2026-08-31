@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LabJourney } from "@/components/lab-journey";
+import { WhatsAppText } from "@/components/whatsapp-text";
 
 type Msg = { id: string; direction: "INBOUND" | "OUTBOUND"; body: string };
 
@@ -91,7 +92,7 @@ export function ChatPanel({
                     : "max-w-[80%] rounded-[1.4rem] rounded-bl-md bg-[#efe6d9] px-4 py-2.5 text-[15px] leading-relaxed text-ink"
                 }
               >
-                {m.body}
+                <WhatsAppText text={m.body} />
               </div>
             </div>
           ))}

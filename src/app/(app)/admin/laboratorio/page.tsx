@@ -9,7 +9,7 @@ export default async function LaboratorioPage() {
         O simulador em Conversas usa o mesmo orquestrador de produção, só troca o transporte.{" "}
         {openaiConfigured() ? (
           <>
-            LLM: OPENAI · MODEL USED: {aiModelFor("SALES")}
+            LLM: OPENAI · TERRA {aiModelFor("SALES")} · SOL {aiModelFor("COMPLEX")} · LUNA {aiModelFor("UTILITY")}
           </>
         ) : (
           <>LLM: DevMockLlmProvider (sem OPENAI_API_KEY)</>

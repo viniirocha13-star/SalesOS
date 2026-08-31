@@ -45,7 +45,9 @@ export default async function IntegracoesPage() {
             <h2 className="font-medium">OpenAI</h2>
             <Badge variant={aiStatus === "CONNECTED" ? "secondary" : "outline"}>{aiStatus}</Badge>
           </div>
-          <p className="text-sm">Modelo único (atendimento): {aiModelFor("SALES")}</p>
+          <p className="text-sm">Terra (venda): {aiModelFor("SALES")}</p>
+          <p className="text-sm">Sol (difícil): {aiModelFor("COMPLEX")}</p>
+          <p className="text-sm">Luna (utility): {aiModelFor("UTILITY")}</p>
           <p className="text-xs text-zinc-500">
             Última chamada: {formatDateTime(lastAi?.createdAt)} · {lastAi?.model ?? "—"} · tokens in/out {lastAi?.inputTokens ?? "—"}/{lastAi?.outputTokens ?? "—"}
           </p>

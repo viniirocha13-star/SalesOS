@@ -15,6 +15,12 @@ export default async function HomeOperadorPage() {
       take: 12,
     }),
   ]);
+  const boxQueue = await prisma.viabilityCheck.count({
+    where: {
+      result: "INDETERMINADO",
+      source: { in: ["geocode_operator_queue", "official_api_failed", "official_api_unmapped"] },
+    },
+  });
   const collecting = await prisma.lead.findMany({
     where: {
       status: { in: ["ACEITE_COMERCIAL", "COLETANDO_DADOS", "PRONTO_PARA_LANCAMENTO"] },
@@ -27,7 +33,7 @@ export default async function HomeOperadorPage() {
   return (
     <div className="space-y-6">
       <PageHeader kicker="Operação" title="Agora" description="O cliente envia os dados. O operador lança no sistema." />
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Link href="/operacao" className="surface block p-6 transition-transform hover:-translate-y-0.5">
           <p className="text-[12px] tracking-[0.14em] text-ink/40 uppercase">Fila de lançamento</p>
           <p className="font-heading mt-3 text-5xl">{queue}</p>
@@ -39,6 +45,10 @@ export default async function HomeOperadorPage() {
         <Link href="/inbox" className="surface block p-6 transition-transform hover:-translate-y-0.5">
           <p className="text-[12px] tracking-[0.14em] text-ink/40 uppercase">Conversas assumidas</p>
           <p className="font-heading mt-3 text-5xl">{mine}</p>
+        </Link>
+        <Link href="/operacao/viabilidade" className="surface block p-6 transition-transform hover:-translate-y-0.5">
+          <p className="text-[12px] tracking-[0.14em] text-ink/40 uppercase">Olhar a caixa</p>
+          <p className="font-heading mt-3 text-5xl">{boxQueue}</p>
         </Link>
       </div>
 

@@ -72,7 +72,7 @@ Qualidade: `npm run lint && npm run typecheck && npm run test && npm run build &
 
 O E2E Playwright reutiliza o servidor já no ar (`reuseExistingServer`) na porta `APP_PORT`. Relatório da auditoria do núcleo: `docs/AUDIT.md`. Fase WhatsApp + OpenAI: `docs/PHASE-WHATSAPP.md` e `docs/WHATSAPP.md`. Fase comercial: `docs/PHASE-COMMERCIAL.md`. Pós-venda: `docs/PHASE-POSTSALE.md`.
 
-Modelos só via env: `AI_SALES_MODEL=gpt-5.6-luna`. Sem `OPENAI_API_KEY` o vendedor usa mock de desenvolvimento (não inventa desconto). Terra não é usado.
+Modelos via env: Terra (`AI_SALES_MODEL`), Sol (`AI_COMPLEX_MODEL`), Luna (`AI_UTILITY_MODEL`). Mesma `OPENAI_API_KEY`. Sem chave, o simulador usa mock (não inventa desconto).
 
 ## Cursor Preview vs Application Health
 

@@ -30,7 +30,7 @@ vi.mock("@/lib/prisma", () => ({
     modelPrice: { findUnique: vi.fn(async () => null) },
     conversationMemory: { upsert: vi.fn(async () => ({})) },
     lead: { findUnique: vi.fn(async () => conversation.lead), update: vi.fn(async () => ({})) },
-    objection: { count: vi.fn(async () => 0) },
+    objection: { count: vi.fn(async () => 0), findMany: vi.fn(async () => []) },
     customerFact: { upsert: vi.fn(async () => ({})) },
     commercialDecision: { create: vi.fn(async () => ({})) },
   },

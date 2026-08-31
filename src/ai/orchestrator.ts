@@ -6,25 +6,11 @@ import { enqueueSendWhatsApp } from "@/workers/queue";
 import { withConversationLock } from "@/workers/locks";
 import { emit } from "@/events/bus";
 import { logError, logInfo } from "@/lib/logger";
-import { aiModelFor } from "@/lib/ai-models";
+import { aiModelFor, parseLabStack, type AiTask, type LabStack } from "@/lib/ai-models";
 import type { LlmMessage } from "@/integrations/llm/provider";
 import type { SalesStage } from "@prisma/client";
-
-const FALLBACK_PROMPT = `Você é a Luna, vendedora digital da operação no WhatsApp.
-
-Personalidade: competente, natural, objetiva. Mensagens curtas. Uma pergunta por vez quando precisar perguntar.
-
-Você decide COMO conversar. Você NÃO decide fatos comerciais.
-
-Preço, promoção, cobertura, prazo, fidelidade, documentação e condição só existem se uma ferramenta ou o estado do lead devolver. Sem isso, não afirme.
-
-Não use roteiro rígido. Interprete a mensagem. Não pergunte o que já está no SalesConversationState. Não repita apresentação. Não empurre produto que o cliente recusou. Sugestão extra só com contexto comercial.
-
-Objeções: use get_objection_context / get_faq e formule com fatos autorizados — nunca uma frase decorada.
-
-Handoff: só request_human_handoff se o cliente pediu humano, regra explícita ou situação realmente insolúvel. Cliente responder não é motivo de pausa.
-
-Após aceite do backend, cadastro um campo por vez (get_required_customer_fields).`;
+import { toWhatsAppMarkup } from "@/lib/whatsapp-format";
+import { LUNA_LAB_SALES_PROMPT, SOL_PROMPT, TERRA_PROMPT } from "@/ai/prompts";
 
 export async function runSalesOrchestrator(input: {
   conversationId: string;
@@ -94,17 +80,35 @@ async function executeOrchestrator(input: {
   const contradictions = Boolean(
     ownBill && restatedOwnBill?.[1] && restatedOwnBill[1] !== ownBill && restatedOwnBill[1] !== mentionedOtherPrice?.[1],
   );
+  const labStack = parseLabStack(
+    (conversation.memory?.customerFacts as { lab_stack?: string } | null)?.lab_stack,
+  );
+  const recentObjections = await prisma.objection.findMany({
+    where: { leadId: conversation.leadId },
+    orderBy: { createdAt: "desc" },
+    take: 6,
+  });
+  const unresolvedPrice = recentObjections.some((o) => o.category === "PRECO") && objections >= 1;
   const routed = await (await import("@/commercial/complexity-router")).routeComplexity(conversation.id, {
     consecutiveObjections: objections,
+    unresolvedPriceObjection: unresolvedPrice && /caro|80|desconto/.test(inbound),
     contradictions,
     lowConfidence: false,
     salesRequestedEscalation: /escalar_complexo/.test(inbound),
     longNegotiation: (conversation.messages?.length ?? 0) > 16 && commercial.signals.intent === "OBJECTION",
     indecisive: /n[aã]o sei|talvez|vou ver com|indecis/.test(inbound) && objections >= 2,
-    complexComparison: Boolean(ownBill && mentionedOtherPrice && commercial.ranking.alternative_offer && objections >= 2),
-    highLossRisk: commercial.signals.buyingIntent === "HIGH" && objections >= 3,
+    complexComparison: Boolean(ownBill && mentionedOtherPrice && commercial.ranking.alternative_offer),
+    highLossRisk: commercial.signals.buyingIntent === "HIGH" && objections >= 2,
     exceptional: commercial.signals.intent === "COMPLAINT" && /procon|processo|advogad/.test(inbound),
+    highIntentHesitating:
+      commercial.signals.buyingIntent === "HIGH" && /pensar|depois|marido|esposa|talvez/.test(inbound),
+    stackedPriceLoyaltyCompetitor: /caro|fidel|concorr|vivo|claro|tim/.test(inbound) && objections >= 2,
+    terraStalled: (conversation.messages?.length ?? 0) > 10 && objections >= 2 && !commercial.payload.CommercialAcceptance,
+    inbound: input.combinedInbound,
+    salesStage: conversation.salesStage,
+    labStack,
   });
+  const purpose: AiTask = routed.purpose;
 
   const { decideNextBestAction, recommendedTools } = await import("@/sales/next-best-action");
   const { compactSalesStateForPrompt } = await import("@/sales/conversation-state");
@@ -122,26 +126,47 @@ async function executeOrchestrator(input: {
     update: { commercialState: compactSalesStateForPrompt(salesState) as object },
   });
 
-  const prompt = await loadActivePrompt();
+  const prompt = await loadActivePrompt(purpose, labStack);
   const recent = [...conversation.messages].reverse();
+  const compactState = compactSalesStateForPrompt(salesState);
   const history: LlmMessage[] = [
     { role: "system", content: prompt },
     {
       role: "system",
-      content: JSON.stringify({
-        SalesConversationState: compactSalesStateForPrompt(salesState),
-        next_best_action: salesState.next_best_action,
-        suggested_tools: recommendedTools(salesState.next_best_action),
-        memory_summary: conversation.memory?.summary ?? null,
-        do_not_reask: [
-          salesState.cidade && "cidade",
-          salesState.produto_interesse && "produto_interesse",
-          salesState.operadora_atual && "operadora_atual",
-          salesState.quantidade_linhas && "quantidade_linhas",
-        ].filter(Boolean),
-        knowledge_policy:
-          "Book + ferramentas. Sem preço/cobertura/prazo no prompt. Consulte search_eligible_offers, check_city_availability, get_product_knowledge, get_faq.",
-      }),
+      content: JSON.stringify(
+        purpose === "COMPLEX"
+          ? {
+              ConversationSummary: conversation.memory?.summary ?? null,
+              RecentMessages: recent.slice(-8).map((m) => ({ actor: m.actor, body: m.body })),
+              CustomerFacts: commercial.payload.CustomerFacts,
+              CurrentOffer: commercial.payload.CurrentOffer,
+              EligibleOffers: commercial.payload.EligibleOffers,
+              Objections: commercial.payload.Objections,
+              PreviousStrategies: commercial.strategy,
+              BuyingIntent: commercial.signals.buyingIntent,
+              Viability: commercial.payload.Viability,
+              CommercialRules: commercial.payload.ForbiddenClaims,
+              AllowedArguments: commercial.payload.AllowedArguments,
+              ForbiddenClaims: commercial.payload.ForbiddenClaims,
+              SalesConversationState: compactState,
+              next_best_action: salesState.next_best_action,
+              knowledge_policy: "Book + tools. Sem inventar. Abordagem nova, não a mesma do Terra.",
+            }
+          : {
+              SalesConversationState: compactState,
+              next_best_action: salesState.next_best_action,
+              suggested_tools: recommendedTools(salesState.next_best_action),
+              memory_summary: conversation.memory?.summary ?? null,
+              do_not_reask: [
+                salesState.cidade && "cidade",
+                salesState.produto_interesse && "produto_interesse",
+                salesState.operadora_atual && "operadora_atual",
+                salesState.quantidade_linhas && "quantidade_linhas",
+              ].filter(Boolean),
+              knowledge_policy:
+                "Book + ferramentas. Sem preço/cobertura/prazo no prompt. Consulte search_eligible_offers, check_city_availability, get_product_knowledge, get_faq.",
+            },
+      ),
     },
     ...recent.map((m) => ({
       role: m.direction === "INBOUND" ? ("user" as const) : ("assistant" as const),
@@ -155,7 +180,7 @@ async function executeOrchestrator(input: {
 
   let result;
   try {
-    result = await createSalesResponse({ messages: history, tools, purpose: "SALES" });
+    result = await createSalesResponse({ messages: history, tools, purpose });
   } catch (error) {
     logError("orchestrator.openai_failed", { conversationId: conversation.id, message: String(error) });
     const reply =
@@ -198,7 +223,7 @@ async function executeOrchestrator(input: {
         leadId: conversation.leadId,
         conversationId: conversation.id,
       });
-      await recordExecution(conversation.id, conversation.leadId, result, call.name, payload);
+      await recordExecution(conversation.id, conversation.leadId, result, call.name, payload, purpose);
       history.push({
         role: "tool",
         name: call.name,
@@ -209,11 +234,11 @@ async function executeOrchestrator(input: {
     result = await createSalesResponse({
       messages: history,
       tools,
-      purpose: "SALES",
+      purpose,
     });
   }
 
-  await recordExecution(conversation.id, conversation.leadId, result, null, result.content);
+  await recordExecution(conversation.id, conversation.leadId, result, null, result.content, purpose);
   await prisma.commercialDecision.create({
     data: {
       conversationId: conversation.id,
@@ -313,7 +338,9 @@ async function executeOrchestrator(input: {
       strategy: commercial.strategy,
       tools: toolNames,
       objection: commercial.objection?.category ?? null,
-      escalated: Boolean(routed.reason),
+      escalated: Boolean(routed.solUsed),
+      routerReason: routed.reason,
+      labStack,
       salesState,
     },
   };
@@ -331,17 +358,20 @@ export async function handleInboundMessage(input: {
   });
 }
 
-async function loadActivePrompt() {
+async function loadActivePrompt(purpose: AiTask, labStack?: LabStack | null) {
+  if (labStack === "luna") return LUNA_LAB_SALES_PROMPT;
+  const slug = purpose === "COMPLEX" ? "sales_complex" : "sales_system";
   const row = await prisma.promptVersion.findFirst({
-    where: { active: true, prompt: { slug: "sales_system" } },
+    where: { active: true, prompt: { slug } },
     orderBy: { version: "desc" },
   });
-  return row?.content ?? FALLBACK_PROMPT;
+  if (row?.content) return row.content;
+  return purpose === "COMPLEX" ? SOL_PROMPT : TERRA_PROMPT;
 }
 
 function sanitizeReply(text?: string) {
   if (!text) return "";
-  return text.replace(/\n{3,}/g, "\n\n").trim();
+  return toWhatsAppMarkup(text);
 }
 
 async function recordExecution(
@@ -350,6 +380,7 @@ async function recordExecution(
   result: { model: string; intent?: string; usage?: { input?: number; output?: number; cached?: number } },
   toolName: string | null,
   payload: unknown,
+  purpose: AiTask = "SALES",
 ) {
   const inputTokens = result.usage?.input ?? 0;
   const outputTokens = result.usage?.output ?? 0;
@@ -367,7 +398,7 @@ async function recordExecution(
       model: result.model || aiModelFor("SALES"),
       intent: result.intent,
       toolName,
-      purpose: "SALES",
+      purpose,
       inputTokens,
       outputTokens,
       cachedTokens,

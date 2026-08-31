@@ -6,7 +6,7 @@ O repositório já tinha Fase 1: auth, CRM, book/ofertas, simulador, fila operac
 
 - webhook WhatsApp **síncrono** → persistência + fila + debounce
 - prompt hardcoded Brisanet → prompt versionado genérico de telecom
-- LLM único `AI_SALES_MODEL` (GPT-5.6 Luna). Sem Terra, sem modelo COMPLEX/UTILITY separado.
+- LLM: Terra (venda) + Sol (negociação difícil) + Luna (utility). Mesma `OPENAI_API_KEY`.
 - conversas simples → Inbox 3 colunas + lock IA/humano
 - sem Redis → BullMQ + Redis (com fallback em memória se a fila falhar, logado)
 

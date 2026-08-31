@@ -48,16 +48,30 @@ export async function getLaunchSnapshot(leadId: string) {
   else if (accepted && dataComplete) phase = "ready";
   else if (accepted || lead.status === "COLETANDO_DADOS" || lead.status === "ACEITE_COMERCIAL") phase = "collecting";
 
+  const readyForOperator = accepted && dataComplete;
   return {
     phase,
     accepted,
     dataComplete,
+    ready_for_operator: readyForOperator,
     fields,
     missing,
     preSaleId: queued?.id ?? null,
     offerName,
     offerId: acceptance?.offerId ?? queued?.offerId ?? null,
     leadName: lead.name,
+    operator_packet: readyForOperator
+      ? {
+          cliente: lead.name ?? customer?.fullName,
+          telefone: lead.phone,
+          cpf: customer?.documentCpf ?? null,
+          endereco: lead.address,
+          cep: lead.zipCode,
+          cidade: lead.city,
+          oferta_aceita: offerName,
+          valor_centavos: queued?.offer.promotionalPriceCents ?? queued?.offer.priceCents ?? null,
+        }
+      : null,
   };
 }
 

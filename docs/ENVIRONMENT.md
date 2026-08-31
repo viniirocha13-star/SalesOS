@@ -25,7 +25,11 @@ Recomendado no WEB:
 ```
 NODE_ENV=production
 APP_HOST=0.0.0.0
-AI_SALES_MODEL=gpt-5.6-luna
+AI_SALES_MODEL=gpt-5.6-terra
+AI_COMPLEX_MODEL=gpt-5.6-sol
+AI_UTILITY_MODEL=gpt-5.6-luna
+AI_COMPLEX_ENABLED=true
+MAX_SOL_CALLS_PER_CONVERSATION=2
 OPENAI_API_STYLE=chat
 WHATSAPP_PROVIDER=mock
 ```
@@ -39,6 +43,8 @@ DATABASE_URL
 REDIS_URL
 OPENAI_API_KEY
 AI_SALES_MODEL
+AI_COMPLEX_MODEL
+AI_UTILITY_MODEL
 ENCRYPTION_KEY
 # ou APP_ENCRYPTION_KEY
 NODE_ENV=production
@@ -58,6 +64,20 @@ WHATSAPP_BUSINESS_ACCOUNT_ID
 ```
 
 Webhook futuro: `{APP_URL}/api/whatsapp/webhook`
+
+## Viabilidade
+
+Com contrato/API oficial:
+
+```
+BRISANET_VIABILITY_URL=
+BRISANET_VIABILITY_TOKEN=
+BRISANET_VIABILITY_METHOD=POST
+```
+
+A Luna geocodifica o endereço (Nominatim ou `GOOGLE_GEOCODE_API_KEY`) e chama a API autenticada. Só afirma VIAVEL/NÃO se a resposta for confiável.
+
+Sem API: geocode + card em **Tarefas / Operação → Fila de viabilidade**. O operador olha a caixa no sistema Brisanet. Sem scraping.
 
 ## Desenvolvimento
 

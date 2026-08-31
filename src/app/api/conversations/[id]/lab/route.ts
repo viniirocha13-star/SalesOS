@@ -22,11 +22,24 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     const ctxData = await buildCommercialContext(id, last?.body ?? "");
     const { getLaunchSnapshot } = await import("@/domain/launch-ready");
     const launch = await getLaunchSnapshot(ctxData.conv.leadId);
-    const { openaiConfigured } = await import("@/lib/ai-models");
+    const { openaiConfigured, modelFamily, parseLabStack } = await import("@/lib/ai-models");
     const { getLlmProvider } = await import("@/integrations/llm/provider");
+    const execs = await prisma.aIExecution.findMany({ where: { conversationId: id } });
+    const modelCounts = { terra: 0, sol: 0, luna: 0 };
+    let conversationCostUsd = 0;
+    for (const e of execs) {
+      const fam = modelFamily(e.model);
+      if (fam !== "other") modelCounts[fam] += 1;
+      conversationCostUsd += e.estimatedCostUsd ?? 0;
+    }
+    const mem = await prisma.conversationMemory.findUnique({ where: { conversationId: id } });
+    const labStack = parseLabStack((mem?.customerFacts as { lab_stack?: string } | null)?.lab_stack);
     return NextResponse.json({
       llm: openaiConfigured() ? "OPENAI" : getLlmProvider().name,
       model: lastExec?.model ?? decision?.model,
+      labStack,
+      modelCounts,
+      conversationCostUsd,
       estimatedCostUsd: lastExec?.estimatedCostUsd ?? decision?.estimatedCostUsd,
       cachedTokens: lastExec?.cachedTokens ?? 0,
       salesStage: ctxData.payload.SalesStage,

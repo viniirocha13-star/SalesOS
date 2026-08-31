@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { LeadBadge } from "@/components/status-badge";
 import { LaunchReadyPanel, type LaunchInfo } from "@/components/launch-ready-panel";
 import { formatDateTime } from "@/lib/format";
+import { WhatsAppText } from "@/components/whatsapp-text";
 import type { LeadStatus } from "@prisma/client";
 import { CheckCircle2, Clock3, Filter, RefreshCw, Send, UserRound } from "lucide-react";
 
@@ -285,7 +286,7 @@ export function InboxClient() {
                     {m.actor === "AI" ? "IA" : m.actor === "CUSTOMER" ? "Cliente" : m.actor === "HUMAN" ? "Humano" : "Sistema"}
                     {m.status === "FAILED" ? " · falhou" : m.status === "READ" ? " · lida" : m.status === "DELIVERED" ? " · entregue" : ""}
                   </div>
-                  {m.body}
+                  <WhatsAppText text={m.body} />
                   <div className="mt-1 text-[10px] opacity-60">{formatDateTime(m.createdAt)}</div>
                 </div>
               ))}

@@ -52,6 +52,15 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <Field label="Ad" value={lead.ad} />
             <Field label="Endereço" value={lead.address} />
             <Field label="CEP" value={lead.zipCode} />
+            <Field
+              label="Lat / Lng"
+              value={
+                lead.latitude != null && lead.longitude != null
+                  ? `${lead.latitude}, ${lead.longitude}`
+                  : null
+              }
+            />
+            <Field label="Última viabilidade" value={lead.viabilityChecks[0]?.result} />
           </CardContent>
         </Card>
         <LeadEditor lead={lead} />

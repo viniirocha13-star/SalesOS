@@ -4,9 +4,11 @@ import { classifyIntentSignals } from "@/commercial/intent";
 
 export type ObjectionContext = {
   category: string;
+  severity: "low" | "medium" | "high";
   customer_context: Record<string, unknown>;
   current_offer: unknown;
   alternative_offers: unknown[];
+  eligible_alternatives: unknown[];
   allowed_arguments: string[];
   forbidden_claims: string[];
   commercial_goal: string;
@@ -24,9 +26,12 @@ export async function getObjectionContext(conversationId: string, objectionType?
     },
   });
   const last = conv.lead.objections[0];
-  const category = (objectionType || last?.category || "OUTROS").toUpperCase();
+  const { classifyObjectionTaxonomy, taxonomyToPrisma, severityFor } = await import("@/commercial/objection-taxonomy");
+  const taxonomy = classifyObjectionTaxonomy(objectionType || last?.text || last?.category || "");
+  const category = taxonomy;
+  const prismaCategory = taxonomyToPrisma(objectionType || last?.category || taxonomy);
   const playbook = await prisma.objectionPlaybook.findFirst({
-    where: { category: category as never, active: true },
+    where: { category: prismaCategory, active: true },
   });
   const ranking = await selectOffers({
     city: conv.lead.city,
@@ -55,7 +60,11 @@ export async function getObjectionContext(conversationId: string, objectionType?
           priceCents: ranking.best_offer.promotionalPriceCents ?? ranking.best_offer.priceCents,
         }
       : null,
+    severity: severityFor(taxonomy, signals.buyingIntent),
     alternative_offers: [ranking.alternative_offer, ranking.upsell, ranking.cross_sell]
+      .filter(Boolean)
+      .map((o) => ({ id: o!.id, name: o!.name, priceCents: o!.promotionalPriceCents ?? o!.priceCents })),
+    eligible_alternatives: [ranking.alternative_offer, ranking.upsell]
       .filter(Boolean)
       .map((o) => ({ id: o!.id, name: o!.name, priceCents: o!.promotionalPriceCents ?? o!.priceCents })),
     allowed_arguments: [

@@ -7,12 +7,17 @@ import { vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    complexityEscalation: { create: vi.fn(async (args: { data: unknown }) => args.data) },
+    complexityEscalation: {
+      create: vi.fn(async (args: { data: unknown }) => args.data),
+      count: vi.fn(async () => 0),
+    },
   },
 }));
 
 vi.mock("@/lib/ai-models", () => ({
-  aiModelFor: (task: string) => (task === "COMPLEX" ? "complex-model" : "sales-model"),
+  aiModelFor: (task: string) => (task === "COMPLEX" ? "complex-model" : task === "UTILITY" ? "luna-model" : "sales-model"),
+  complexRoutingEnabled: () => true,
+  maxSolCallsPerConversation: () => 2,
 }));
 
 async function turn(llm: DevMockLlmProvider, user: string, tool?: object) {
@@ -212,7 +217,10 @@ describe("Discovery não dita frase", () => {
 });
 
 describe("Escalonamento complexo", () => {
-  it("caso difícil não troca de modelo", async () => {
+  it("caso difícil sobe Terra → Sol", async () => {
+    process.env.AI_COMPLEX_ENABLED = "true";
+    process.env.AI_SALES_MODEL = "gpt-5.6-terra";
+    process.env.AI_COMPLEX_MODEL = "gpt-5.6-sol";
     const { prisma } = await import("@/lib/prisma");
     const r = await routeComplexity("conv-hard", {
       consecutiveObjections: 3,
@@ -221,8 +229,9 @@ describe("Escalonamento complexo", () => {
       salesRequestedEscalation: false,
       longNegotiation: true,
       complexComparison: true,
+      inbound: "Tá caro e a outra é 80",
     });
-    expect(r.purpose).toBe("SALES");
+    expect(r.purpose).toBe("COMPLEX");
     expect(r.reason).toMatch(/multiple_objections|contradictions/);
     expect(prisma.complexityEscalation.create).toHaveBeenCalled();
   });

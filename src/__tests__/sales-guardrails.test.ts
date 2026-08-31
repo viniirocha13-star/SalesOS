@@ -13,22 +13,26 @@ describe("WhatsApp policy", () => {
 });
 
 describe("AIRouter", () => {
-  it("não espalha modelo: lê env", () => {
-    const previous = process.env.AI_SALES_MODEL;
-    process.env.AI_SALES_MODEL = "test-sales-model";
-    expect(aiModelFor("SALES")).toBe("test-sales-model");
-    expect(aiModelFor("COMPLEX")).toBe("test-sales-model");
-    expect(aiModelFor("UTILITY")).toBe("test-sales-model");
-    process.env.AI_SALES_MODEL = previous;
+  it("lê os três modelos do env", () => {
+    const prev = {
+      s: process.env.AI_SALES_MODEL,
+      c: process.env.AI_COMPLEX_MODEL,
+      u: process.env.AI_UTILITY_MODEL,
+    };
+    process.env.AI_SALES_MODEL = "gpt-5.6-terra";
+    process.env.AI_COMPLEX_MODEL = "gpt-5.6-sol";
+    process.env.AI_UTILITY_MODEL = "gpt-5.6-luna";
+    expect(aiModelFor("SALES")).toBe("gpt-5.6-terra");
+    expect(aiModelFor("COMPLEX")).toBe("gpt-5.6-sol");
+    expect(aiModelFor("UTILITY")).toBe("gpt-5.6-luna");
+    process.env.AI_SALES_MODEL = prev.s;
+    process.env.AI_COMPLEX_MODEL = prev.c;
+    process.env.AI_UTILITY_MODEL = prev.u;
   });
 
-  it("recusa Terra e Sol e cai em Luna", () => {
-    const previous = process.env.AI_SALES_MODEL;
-    process.env.AI_SALES_MODEL = "gpt-5.6-terra";
-    expect(aiModelFor("SALES")).toBe("gpt-5.6-luna");
-    process.env.AI_SALES_MODEL = "gpt-5.6-sol";
-    expect(aiModelFor("SALES")).toBe("gpt-5.6-luna");
-    process.env.AI_SALES_MODEL = previous;
+  it("laboratório Luna força o modelo Luna", () => {
+    expect(aiModelFor("SALES", "luna")).toBe("gpt-5.6-luna");
+    expect(aiModelFor("COMPLEX", "terra")).toBe("gpt-5.6-terra");
   });
 });
 

@@ -187,14 +187,18 @@ export function getLlmProvider(): LlmProvider {
 export class DevMockLlmProvider implements LlmProvider {
   readonly name = "dev_mock_llm";
 
-  async complete(input: { messages: LlmMessage[]; tools: LlmTool[] }): Promise<LlmResult> {
+  async complete(input: { messages: LlmMessage[]; tools: LlmTool[]; purpose?: AiTask }): Promise<LlmResult> {
     const lastUser = [...input.messages].reverse().find((m) => m.role === "user")?.content ?? "";
     const lower = lastUser.toLowerCase();
     const hasToolResults = input.messages.some((m) => m.role === "tool");
 
     if (hasToolResults) {
       const lastTool = [...input.messages].reverse().find((m) => m.role === "tool");
-      return { model: this.name, toolCalls: [], content: composeFromTools(lastUser, lastTool?.content ?? "") };
+      return {
+        model: aiModelFor(input.purpose ?? "SALES"),
+        toolCalls: [],
+        content: composeFromTools(lastUser, lastTool?.content ?? ""),
+      };
     }
 
     const collecting = isCollectingPhase(input.messages);
@@ -238,7 +242,7 @@ export class DevMockLlmProvider implements LlmProvider {
       calls.push({ id: "t1", name: "set_sales_stage", arguments: { stage: "DISCOVERY" } });
       calls.push({ id: "t2", name: "get_customer_context", arguments: {} });
     }
-    return { model: this.name, content: "", toolCalls: calls };
+    return { model: aiModelFor(input.purpose ?? "SALES"), content: "", toolCalls: calls };
   }
 }
 
@@ -297,12 +301,15 @@ function composeFromTools(userText: string, toolJson: string): string {
     if (data.preSale) return "Fechado. Vou encaminhar seu cadastro pra equipe operacional. Assim que tiver retorno, te aviso aqui.";
     if (data.viability) {
       if (data.viability.result === "VIAVEL" && data.viability.reliable) {
-        return `Em ${data.viability.city ?? "sua cidade"} a consulta autorizada indica cobertura. Quer que eu te mostre as opções vigentes?`;
+        return `Em ${data.viability.city ?? "sua cidade"} a consulta oficial indica cobertura. Quer que eu te mostre as opções vigentes?`;
       }
-      if (data.viability.result === "NAO_VIAVEL") {
-        return "Por esse endereço a consulta autorizada não confirma cobertura. Posso registrar seu interesse pra expansão.";
+      if (data.viability.result === "NAO_VIAVEL" && data.viability.reliable) {
+        return "Por esse endereço a consulta oficial não confirma cobertura. Posso registrar seu interesse pra expansão.";
       }
-      return "Ainda não tenho um retorno confiável de cobertura. Não vou te afirmar que tem sinal. Posso pedir uma checagem manual.";
+      if (data.viability.queued_for_operator) {
+        return "Anotei o endereço e a localização. Um operador vai olhar a caixa no sistema. Assim que sair o retorno, te falo — sem afirmar sinal agora.";
+      }
+      return "Ainda não tenho um retorno confiável de cobertura. Não vou te afirmar que tem sinal.";
     }
     if (data.knowledge?.length) {
       const k = data.knowledge[0];

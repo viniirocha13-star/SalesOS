@@ -1,3 +1,6 @@
+import { geocodeAddress } from "@/integrations/geocode/provider";
+import { checkOfficialViability, officialViabilityConfigured } from "@/integrations/viability/official";
+
 export type ViabilityInput = {
   address?: string;
   zipCode?: string;
@@ -19,66 +22,51 @@ export interface ViabilityProvider {
   check(input: ViabilityInput): Promise<ViabilityOutput>;
 }
 
-/** Base interna autorizada — cidades de cobertura cadastradas no seed/config. Sem scraping. */
-export class InternalAuthorizedViabilityProvider implements ViabilityProvider {
-  readonly name = "internal_authorized";
-  constructor(private coveredCities: Set<string>) {}
+export class OfficialOrOperatorViabilityProvider implements ViabilityProvider {
+  readonly name = "official_or_operator";
 
   async check(input: ViabilityInput): Promise<ViabilityOutput> {
-    const city = input.city?.trim().toLowerCase();
-    if (!city) {
-      return {
-        result: "INDETERMINADO",
-        source: this.name,
-        reliable: false,
-        details: { reason: "cidade_ausente", state: "UNKNOWN" },
-      };
-    }
-    const covered = this.coveredCities.has(city);
-    return {
-      result: covered ? "VIAVEL" : "INDETERMINADO",
-      source: this.name,
-      reliable: covered,
-      details: { city, state: covered ? "AVAILABLE" : "MANUAL_CHECK_REQUIRED" },
+    const geo = await geocodeAddress(input);
+    const withGeo: ViabilityInput = {
+      ...input,
+      latitude: geo?.latitude ?? input.latitude,
+      longitude: geo?.longitude ?? input.longitude,
     };
-  }
-}
+    const geoDetails = geo
+      ? { latitude: geo.latitude, longitude: geo.longitude, geocode_source: geo.source, label: geo.label }
+      : { geocode_source: "none" };
 
-/** Consulta manual pelo operador — única forma positiva sem API oficial. */
-export class ManualOperatorViabilityProvider implements ViabilityProvider {
-  readonly name = "manual_operator";
+    if (officialViabilityConfigured()) {
+      try {
+        const official = await checkOfficialViability(withGeo);
+        return {
+          ...official,
+          details: { ...official.details, ...geoDetails, queued: official.reliable ? false : true },
+        };
+      } catch {
+        return {
+          result: "INDETERMINADO",
+          source: "official_api_failed",
+          reliable: false,
+          details: { ...geoDetails, queued: true, reason: "falha_api_oficial" },
+        };
+      }
+    }
 
-  async check(): Promise<ViabilityOutput> {
     return {
       result: "INDETERMINADO",
-      source: this.name,
+      source: "geocode_operator_queue",
       reliable: false,
-      details: { reason: "aguardando_consulta_manual", state: "MANUAL_CHECK_REQUIRED" },
+      details: {
+        ...geoDetails,
+        queued: true,
+        reason: "sem_api_oficial",
+        operator_hint: "Olhar a caixa no sistema Brisanet com lat/lng",
+      },
     };
   }
 }
 
-const COVERED = new Set(
-  [
-    "fortaleza",
-    "caucaia",
-    "maracanaú",
-    "maracanau",
-    "juazeiro do norte",
-    "sobral",
-    "mossoró",
-    "mossoro",
-    "natal",
-    "joão pessoa",
-    "joao pessoa",
-    "campina grande",
-    "recife",
-    "caruaru",
-  ].map((c) => c.toLowerCase()),
-);
-
 export function getViabilityProvider(): ViabilityProvider {
-  const mode = process.env.VIABILITY_PROVIDER ?? "internal";
-  if (mode === "manual") return new ManualOperatorViabilityProvider();
-  return new InternalAuthorizedViabilityProvider(COVERED);
+  return new OfficialOrOperatorViabilityProvider();
 }

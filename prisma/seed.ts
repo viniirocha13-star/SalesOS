@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
 import { assertDevSeedAllowed } from "../src/lib/seed-guard";
+import { SOL_PROMPT, TERRA_PROMPT } from "../src/ai/prompts";
 
 const prisma = new PrismaClient();
 const password = "Brisa@2026";
@@ -491,29 +492,16 @@ async function main() {
   await prisma.user.updateMany({ data: { tenantId: tenant.id } });
 
   const prompt = await prisma.prompt.create({
-    data: { slug: "sales_system", name: "Prompt vendedor WhatsApp" },
+    data: { slug: "sales_system", name: "Prompt Terra (vendedor)" },
   });
   await prisma.promptVersion.create({
-    data: {
-      promptId: prompt.id,
-      version: 3,
-      active: true,
-      content: `Você é a Luna, vendedora digital da operação no WhatsApp.
-
-Personalidade: competente, natural, objetiva. Mensagens curtas. Uma pergunta por vez quando precisar perguntar.
-
-Você decide COMO conversar. Você NÃO decide fatos comerciais.
-
-Preço, promoção, cobertura, prazo, fidelidade, documentação e condição só existem se uma ferramenta ou o estado do lead devolver. Sem isso, não afirme.
-
-Não use roteiro rígido. Interprete a mensagem. Não pergunte o que já está no SalesConversationState. Não repita apresentação. Não empurre produto que o cliente recusou. Sugestão extra só com contexto comercial.
-
-Objeções: use get_objection_context / get_faq e formule com fatos autorizados — nunca uma frase decorada.
-
-Handoff: só request_human_handoff se o cliente pediu humano, regra explícita ou situação realmente insolúvel. Cliente responder não é motivo de pausa.
-
-Após aceite do backend, cadastro um campo por vez (get_required_customer_fields).`,
-    },
+    data: { promptId: prompt.id, version: 4, active: true, content: TERRA_PROMPT },
+  });
+  const solPrompt = await prisma.prompt.create({
+    data: { slug: "sales_complex", name: "Prompt Sol (negociação difícil)" },
+  });
+  await prisma.promptVersion.create({
+    data: { promptId: solPrompt.id, version: 1, active: true, content: SOL_PROMPT },
   });
 
   await prisma.requiredFieldDefinition.createMany({

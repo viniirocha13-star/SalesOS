@@ -27,7 +27,7 @@ IA: interpretação, tom, pergunta seguinte, abordagem de objeção, momento de 
 
 ## 2. AI_SALES_MODEL
 
-Único modelo do atendimento: `AI_SALES_MODEL` (padrão `gpt-5.6-luna`). Effort `AI_SALES_REASONING_EFFORT=low`.
+Terra vende (`AI_SALES_MODEL`). Sol entra só em negociação difícil (`AI_COMPLEX_MODEL`, `AI_COMPLEX_ENABLED`, teto 2). Luna é utility (`AI_UTILITY_MODEL`).
 
 GPT-5.6 Terra **não** é utilizado. Resumos e casos difíceis usam o mesmo Luna.
 
@@ -37,7 +37,7 @@ Sem `OPENAI_API_KEY`, `DevMockLlmProvider` simula tools e redação contextual �
 
 ## 3. Sem modelo COMPLEX / UTILITY separado
 
-`createUtilityResponse` e o ComplexityRouter continuam existindo, mas **não** apontam para outro ID. Não há `AI_COMPLEX_MODEL` nem `AI_UTILITY_MODEL`.
+`createUtilityResponse` usa Luna. O ComplexityRouter escala Terra → Sol quando a negociação é difícil (teto configurável).
 
 ## 5. ComplexityRouter
 
@@ -65,7 +65,7 @@ Elegíveis = APROVADA + vigência + cidade. Por padrão: best, alternative, cros
 
 ## 9. Viabilidade
 
-Estados em `details.state`: AVAILABLE, UNKNOWN, MANUAL_CHECK_REQUIRED (PARTIAL via INDETERMINADO). `VIABILITY_PROVIDER=manual` força `ManualOperatorViabilityProvider`. Sem afirmar cobertura sem fonte confiável.
+Pipeline: geocode (lat/lng) → API oficial Brisanet se `BRISANET_VIABILITY_*` estiver configurada → senão fila em `/operacao/viabilidade` para o operador olhar a caixa. Sem scraping. Luna só afirma VIAVEL com `reliable=true`.
 
 ## 10. Aceite
 

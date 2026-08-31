@@ -1,6 +1,6 @@
 # Arquitetura da Luna
 
-A Luna é a vendedora digital. O modelo interpreta a mensagem e escolhe a linguagem. **Preço, promoção, cobertura, prazo, documentação e condição comercial não vêm do prompt** — vêm do Book ACTIVE, do Offer Engine e das ferramentas.
+A Luna é o modelo **utility** (resumo, extração auxiliar). O vendedor principal é o **Terra**; o **Sol** assume só negociação difícil. **Preço, promoção, cobertura, prazo, documentação e condição comercial não vêm do prompt** — vêm do Book ACTIVE, do Offer Engine e das ferramentas.
 
 Trocar o book no mês seguinte não exige reprogramar a Luna. O prompt só define personalidade e comportamento.
 
@@ -61,7 +61,7 @@ O LLM escolhe quando consultar:
 - produtos (`search_products`)
 - portabilidade (`get_portability_info`)
 - documentação (`get_documentation_requirements` / `get_required_customer_fields`)
-- viabilidade (`check_viability`)
+- viabilidade (`check_viability`: geocode → API oficial Brisanet se houver credencial; senão fila para o operador olhar a caixa. Sem scraping.)
 - dados do lead (`get_collected_lead_data` / `get_sales_conversation_state`)
 - status da venda (`get_sale_status`)
 - objeções/FAQ (`get_objection_context`, `register_objection`, `get_faq`)
