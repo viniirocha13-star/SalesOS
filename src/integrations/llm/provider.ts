@@ -221,6 +221,15 @@ export class DevMockLlmProvider implements LlmProvider {
     } else if (/netflix|roaming|instala|wi-?fi|ilimitado|amazon|prime|fwa\b/.test(lower) && !/quero internet|caro|aceito|pode fazer/.test(lower)) {
       calls.push({ id: "t1", name: "get_product_knowledge", arguments: { query: lastUser } });
       calls.push({ id: "t2", name: "search_eligible_offers", arguments: { query: lastUser, ...extractLocation(lastUser) } });
+    } else if (/chip|5g|linha|portab/.test(lower)) {
+      const city = extractLocation(lastUser).city;
+      if (city) calls.push({ id: "t0", name: "update_customer_fact", arguments: { key: "city", value: city } });
+      calls.push({ id: "t1", name: "check_city_availability", arguments: { city } });
+      calls.push({
+        id: "t2",
+        name: "search_eligible_offers",
+        arguments: { query: lastUser, city, need: "chip" },
+      });
     } else if (/plano|oferta|preço|preco|mega|internet|melhor|quanto|combo/.test(lower)) {
       const city = extractLocation(lastUser).city;
       if (city) calls.push({ id: "t0", name: "update_customer_fact", arguments: { key: "city", value: city } });
@@ -264,7 +273,18 @@ function extractCadastroField(text: string, collecting: boolean): { field: strin
 
 function extractLocation(text: string) {
   const cep = text.match(/\d{5}-?\d{3}/)?.[0];
-  const cities = ["Fortaleza", "Caucaia", "Maracanaú", "Mossoró", "Natal", "João Pessoa", "Recife", "Juazeiro do Norte", "Sobral"];
+  const cities = [
+    "Maranguape",
+    "Fortaleza",
+    "Caucaia",
+    "Maracanaú",
+    "Mossoró",
+    "Natal",
+    "João Pessoa",
+    "Recife",
+    "Juazeiro do Norte",
+    "Sobral",
+  ];
   const city = cities.find((c) => text.toLowerCase().includes(c.toLowerCase()));
   return { city, zipCode: cep, address: text };
 }
@@ -295,6 +315,9 @@ function composeFromTools(userText: string, toolJson: string): string {
           return `${o.name} ${o.speedMbps ? `${o.speedMbps} Mega` : ""} ${price}`.trim();
         })
         .join(" · ");
+    }
+    if (data.available === false && data.book_cities) {
+      return `Anotei ${data.city ?? "sua cidade"}. No book vigente não aparece cobertura/oferta aprovada ali. Posso seguir com chip se tiver opção autorizada ou te orientar com o que o motor devolver — sem inventar sinal.`;
     }
     if (data.offers?.length) {
       const o = data.offers[0];

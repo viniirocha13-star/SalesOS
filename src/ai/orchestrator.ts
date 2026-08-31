@@ -10,63 +10,21 @@ import { aiModelFor } from "@/lib/ai-models";
 import type { LlmMessage } from "@/integrations/llm/provider";
 import type { SalesStage } from "@prisma/client";
 
-const FALLBACK_PROMPT = `Você é o vendedor principal desta operação comercial no WhatsApp.
+const FALLBACK_PROMPT = `Você é a Luna, vendedora digital da operação no WhatsApp.
 
-Você não é um chatbot de respostas prontas.
+Personalidade: competente, natural, objetiva. Mensagens curtas. Uma pergunta por vez quando precisar perguntar.
 
-Seu trabalho é compreender o que o cliente realmente quer, interpretar o contexto da conversa e decidir a melhor maneira de conduzir a negociação.
+Você decide COMO conversar. Você NÃO decide fatos comerciais.
 
-Você possui liberdade para decidir COMO conversar, mas não possui liberdade para alterar fatos comerciais.
+Preço, promoção, cobertura, prazo, fidelidade, documentação e condição só existem se uma ferramenta ou o estado do lead devolver. Sem isso, não afirme.
 
-Preços, ofertas, promoções, cobertura, elegibilidade, fidelidade, benefícios, regras e status são determinados pelas ferramentas e pelo backend.
+Não use roteiro rígido. Interprete a mensagem. Não pergunte o que já está no SalesConversationState. Não repita apresentação. Não empurre produto que o cliente recusou. Sugestão extra só com contexto comercial.
 
-Nunca invente nenhum deles.
+Objeções: use get_objection_context / get_faq e formule com fatos autorizados — nunca uma frase decorada.
 
-Interprete objeções em contexto.
+Handoff: só request_human_handoff se o cliente pediu humano, regra explícita ou situação realmente insolúvel. Cliente responder não é motivo de pausa.
 
-Não responda automaticamente à palavra 'caro'.
-
-Procure compreender por que o cliente considera caro e qual comparação ele está fazendo.
-
-Utilize informações que ele já forneceu.
-
-Não repita perguntas.
-
-Não transforme a conversa em interrogatório.
-
-Quando houver objeção, utilize os argumentos permitidos disponibilizados pelo sistema, mas formule sua própria abordagem natural.
-
-Não utilize respostas padronizadas desnecessariamente.
-
-Você pode fazer perguntas, comparar opções elegíveis, destacar benefícios reais e procurar alternativas válidas.
-
-Nunca crie desconto.
-
-Nunca fale mal de concorrentes.
-
-Nunca invente vantagem.
-
-Quando perceber intenção forte de compra, não continue prolongando a negociação desnecessariamente.
-
-Conduza para fechamento.
-
-Após aceite confirmado pelo backend, pare de vender e passe para condução cadastral.
-
-Solicite somente os dados definidos pelo sistema (get_required_customer_fields).
-
-Peça de forma conversacional e progressiva: um campo por vez, ou no máximo um grupo pequeno se fizer sentido.
-
-Não liste nome, CPF, endereço e CEP na mesma mensagem.
-
-Grave cada resposta com save_customer_field e só então peça o próximo.
-
-Nunca repita dados pessoais sensíveis completos.
-
-Se uma informação não estiver disponível, use uma ferramenta.
-
-Se não houver ferramenta ou informação suficiente, solicite atendimento humano.
-
-Seu objetivo é vender de forma natural, profissional e eficiente, respeitando integralmente as regras comerciais.`;
+Após aceite do backend, cadastro um campo por vez (get_required_customer_fields).`;
 
 export async function runSalesOrchestrator(input: {
   conversationId: string;
@@ -116,8 +74,14 @@ async function executeOrchestrator(input: {
     return { reply: null, blocked: true, provider: "paused" };
   }
 
-  await persistImpliedFacts(conversation.leadId, conversation.id, input.combinedInbound);
   const started = Date.now();
+  const { persistExtractedTurn } = await import("@/sales/persist-state");
+  let salesState = await persistExtractedTurn({
+    conversationId: conversation.id,
+    leadId: conversation.leadId,
+    text: input.combinedInbound,
+    returningCustomer: Boolean(conversation.memory?.summary || conversation.memory?.commercialState),
+  });
   const commercial = await (await import("@/commercial/context")).buildCommercialContext(conversation.id, input.combinedInbound);
   const objections = await prisma.objection.count({
     where: { leadId: conversation.leadId, createdAt: { gte: new Date(Date.now() - 30 * 60_000) } },
@@ -142,13 +106,42 @@ async function executeOrchestrator(input: {
     exceptional: commercial.signals.intent === "COMPLAINT" && /procon|processo|advogad/.test(inbound),
   });
 
+  const { decideNextBestAction, recommendedTools } = await import("@/sales/next-best-action");
+  const { compactSalesStateForPrompt } = await import("@/sales/conversation-state");
+  const decided = decideNextBestAction(salesState, {
+    cityAvailable: commercial.ranking.best_offer ? true : conversation.lead.city ? false : null,
+    hasEligibleOffers: Boolean(commercial.ranking.best_offer),
+    hasAcceptance: Boolean(commercial.payload.CommercialAcceptance),
+    customerAskedHuman: salesState.handoff_required,
+    returningCustomer: Boolean(conversation.memory?.summary),
+  });
+  salesState = { ...salesState, ...decided };
+  await prisma.conversationMemory.upsert({
+    where: { conversationId: conversation.id },
+    create: { conversationId: conversation.id, commercialState: compactSalesStateForPrompt(salesState) as object },
+    update: { commercialState: compactSalesStateForPrompt(salesState) as object },
+  });
+
   const prompt = await loadActivePrompt();
   const recent = [...conversation.messages].reverse();
   const history: LlmMessage[] = [
     { role: "system", content: prompt },
     {
       role: "system",
-      content: `Contexto comercial estruturado (fatos e limites do backend, não um roteiro):\n${JSON.stringify(commercial.payload)}`,
+      content: JSON.stringify({
+        SalesConversationState: compactSalesStateForPrompt(salesState),
+        next_best_action: salesState.next_best_action,
+        suggested_tools: recommendedTools(salesState.next_best_action),
+        memory_summary: conversation.memory?.summary ?? null,
+        do_not_reask: [
+          salesState.cidade && "cidade",
+          salesState.produto_interesse && "produto_interesse",
+          salesState.operadora_atual && "operadora_atual",
+          salesState.quantidade_linhas && "quantidade_linhas",
+        ].filter(Boolean),
+        knowledge_policy:
+          "Book + ferramentas. Sem preço/cobertura/prazo no prompt. Consulte search_eligible_offers, check_city_availability, get_product_knowledge, get_faq.",
+      }),
     },
     ...recent.map((m) => ({
       role: m.direction === "INBOUND" ? ("user" as const) : ("assistant" as const),
@@ -165,8 +158,21 @@ async function executeOrchestrator(input: {
     result = await createSalesResponse({ messages: history, tools, purpose: "SALES" });
   } catch (error) {
     logError("orchestrator.openai_failed", { conversationId: conversation.id, message: String(error) });
-    await markHumanReview(conversation.id, conversation.leadId, String(error));
-    return { reply: null, blocked: true, provider: "openai_error" };
+    const reply =
+      "Tive uma instabilidade agora. Continuo com o que você já me passou — pode repetir só o que faltou?";
+    const outbound = await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        direction: "OUTBOUND",
+        actor: "AI",
+        body: reply,
+        status: conversation.channel === "WHATSAPP" ? "QUEUED" : "SENT",
+      },
+    });
+    if (conversation.channel === "WHATSAPP") {
+      await enqueueSendWhatsApp(outbound.id);
+    }
+    return { reply, blocked: false, provider: "openai_recover", handoff: false };
   }
 
   let loops = 0;
@@ -308,52 +314,9 @@ async function executeOrchestrator(input: {
       tools: toolNames,
       objection: commercial.objection?.category ?? null,
       escalated: Boolean(routed.reason),
+      salesState,
     },
   };
-}
-
-async function persistImpliedFacts(leadId: string, conversationId: string, text: string) {
-  const bill = text.match(/(?:pago|paga|custa|pago hoje)\s*(?:r\$\s*)?(\d{2,4})/i);
-  if (bill) {
-    await prisma.customerFact.upsert({
-      where: { leadId_key: { leadId, key: "current_bill" } },
-      update: { value: bill[1] },
-      create: { leadId, key: "current_bill", value: bill[1], source: "conversation" },
-    });
-    await refreshConversationMemory(conversationId, { budget: `R$${bill[1]}` });
-  }
-  const competitor = text.match(/(?:outra|concorr\w*).{0,28}(?:é|e|de|por)\s*(?:r\$\s*)?(\d{2,4})/i);
-  if (competitor) {
-    await prisma.customerFact.upsert({
-      where: { leadId_key: { leadId, key: "competitor_price" } },
-      update: { value: competitor[1] },
-      create: { leadId, key: "competitor_price", value: competitor[1], source: "conversation" },
-    });
-  }
-  const city = ["Caucaia", "Fortaleza", "Mossoró", "Natal", "Recife"].find((c) => text.toLowerCase().includes(c.toLowerCase()));
-  if (city) {
-    await prisma.lead.update({ where: { id: leadId }, data: { city } });
-    await prisma.customerFact.upsert({
-      where: { leadId_key: { leadId, key: "city" } },
-      update: { value: city },
-      create: { leadId, key: "city", value: city, source: "conversation" },
-    });
-  }
-  const people = text.match(/somos\s+(\d+)/i);
-  if (people) {
-    await prisma.customerFact.upsert({
-      where: { leadId_key: { leadId, key: "household_size" } },
-      update: { value: people[1] },
-      create: { leadId, key: "household_size", value: people[1], source: "conversation" },
-    });
-  }
-  if (/netflix|globoplay|sky\+|prime/i.test(text)) {
-    await prisma.customerFact.upsert({
-      where: { leadId_key: { leadId, key: "usage_streaming" } },
-      update: { value: "HIGH" },
-      create: { leadId, key: "usage_streaming", value: "HIGH", source: "conversation" },
-    });
-  }
 }
 
 export async function handleInboundMessage(input: {

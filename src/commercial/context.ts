@@ -25,14 +25,25 @@ export async function buildCommercialContext(conversationId: string, latestInbou
   });
 
   const facts = Object.fromEntries(conv.lead.facts.map((f) => [f.key, f.value]));
+  const sales = (conv.memory?.commercialState ?? {}) as {
+    produto_interesse?: string | null;
+    internet_interesse?: boolean | null;
+    cidade?: string | null;
+    quantidade_linhas?: number | null;
+  };
+  const city = conv.lead.city ?? sales.cidade ?? (facts.city as string | undefined);
+  const need = conv.lead.productInterest ?? sales.produto_interesse ?? (facts.product_interest as string | undefined);
+  const wantsChip =
+    sales.internet_interesse === false || /chip|móvel|movel/i.test(`${need ?? ""} ${latestInbound}`);
   const ranking = await selectOffers({
-    city: conv.lead.city,
-    need: conv.lead.productInterest ?? (facts.product_interest as string | undefined),
+    city,
+    need,
     conversationChannel: conv.channel,
-    users: Number(facts.household_size) || undefined,
+    users: Number(sales.quantidade_linhas ?? facts.household_size) || undefined,
     preferences: latestInbound,
     streaming: /netflix/i.test(latestInbound) ? "Netflix" : /prime/i.test(latestInbound) ? "Amazon Prime" : null,
-    wantsChip: /chip|móvel|movel/i.test(latestInbound),
+    wantsChip,
+    category: wantsChip && sales.internet_interesse === false ? "MOVEL" : undefined,
   });
   const signals = classifyIntentSignals(latestInbound);
   const inboundLower = latestInbound.toLowerCase();

@@ -269,7 +269,7 @@ export function InboxClient() {
                     loadList();
                   }}
                 >
-                  Devolver para IA
+                  Devolver para Luna
                 </Button>
               </div>
             </div>

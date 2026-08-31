@@ -1,6 +1,6 @@
 # IA
 
-Princípio: o LLM não é fonte de verdade comercial.
+Princípio: o LLM não é fonte de verdade comercial. Prompt = personalidade; fatos = Book + tools + estado do lead. Arquitetura completa em `docs/LUNA.md`.
 
 - `createSalesResponse` / `createUtilityResponse` / `createSummary` em `src/ai/openai.ts`
 - Responses API por padrão; `OPENAI_API_STYLE=chat` força Chat Completions

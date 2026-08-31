@@ -2,7 +2,7 @@
 
 CRM operacional multi-tenant (primeiro uso: telecom). A IA conversa; o backend é a fonte de verdade comercial.
 
-Documentação em `docs/`: ARCHITECTURE, DATABASE, WHATSAPP, AI, SECURITY, DEPLOYMENT, ENVIRONMENT, RUNBOOK.
+Documentação em `docs/`: ARCHITECTURE, DATABASE, WHATSAPP, AI, LUNA, SECURITY, DEPLOYMENT, ENVIRONMENT, RUNBOOK.
 
 ## Porta e URL reais
 

@@ -51,8 +51,56 @@ export const SALES_TOOLS = [
   },
   {
     name: "request_human_handoff",
-    description: "Transfere para humano e bloqueia a IA.",
-    parameters: { type: "object", properties: { reason: { type: "string" }, notes: { type: "string" } } },
+    description:
+      "Handoff só se o cliente pediu humano, regra explícita ou caso insolúvel. Sempre informe reason. Cliente ter respondido NÃO autoriza pausa.",
+    parameters: {
+      type: "object",
+      properties: { reason: { type: "string" }, notes: { type: "string" } },
+      required: ["reason"],
+    },
+  },
+  {
+    name: "get_sales_conversation_state",
+    description: "Lê o Sales Conversation State já extraído (cidade, produto, recusas, NBA). Não inventa.",
+    parameters: { type: "object", properties: {} },
+  },
+  {
+    name: "get_current_offers",
+    description: "Ofertas vigentes elegíveis do Offer Engine para o lead. Sem inventar preço.",
+    parameters: {
+      type: "object",
+      properties: { city: { type: "string" }, need: { type: "string" }, query: { type: "string" } },
+    },
+  },
+  {
+    name: "get_book_commercial",
+    description: "Consulta o book comercial ACTIVE (fatos aprovados). Troca de book não exige reprogramar a Luna.",
+    parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+  },
+  {
+    name: "check_city_availability",
+    description: "Cidades/regiões com oferta APROVADA no book ACTIVE. Nunca inventa cobertura.",
+    parameters: { type: "object", properties: { city: { type: "string" } } },
+  },
+  {
+    name: "get_portability_info",
+    description: "Regras de portabilidade aprovadas + fatos do lead (operadora, DDD). Sem inventar prazo.",
+    parameters: { type: "object", properties: { query: { type: "string" } } },
+  },
+  {
+    name: "get_sale_status",
+    description: "Status da venda: estágio, aceite, pré-venda, handoff.",
+    parameters: { type: "object", properties: {} },
+  },
+  {
+    name: "get_collected_lead_data",
+    description: "Dados já coletados do lead (sem CPF completo).",
+    parameters: { type: "object", properties: {} },
+  },
+  {
+    name: "get_documentation_requirements",
+    description: "Documentação obrigatória cadastrada no sistema.",
+    parameters: { type: "object", properties: { productType: { type: "string" } } },
   },
   {
     name: "search_offers",
@@ -201,6 +249,9 @@ const TOOL_ALIAS: Record<string, string> = {
   update_lead_stage: "set_sales_stage",
   request_human: "request_human_handoff",
   compare_products: "compare_offers",
+  get_current_offers: "search_eligible_offers",
+  get_book_commercial: "get_product_knowledge",
+  get_collected_lead_data: "get_customer_context",
 };
 
 export async function runTool(
@@ -412,7 +463,106 @@ export async function runTool(
       await setSalesStage(ctx.conversationId, "BUYING_INTENT", "tool", "AI");
       return { ok: true, stop_selling: false };
     }
+    case "get_sales_conversation_state": {
+      const { loadSalesConversationState } = await import("@/sales/persist-state");
+      const { compactSalesStateForPrompt } = await import("@/sales/conversation-state");
+      const state = await loadSalesConversationState(ctx.conversationId);
+      return { state: compactSalesStateForPrompt(state) };
+    }
+    case "check_city_availability": {
+      const city = String(args.city ?? "").trim();
+      const books = await prisma.offerBook.findMany({ where: { status: "ACTIVE" }, select: { id: true } });
+      const offers = await prisma.offer.findMany({
+        where: {
+          status: "APROVADA",
+          ...(books.length ? { bookId: { in: books.map((b) => b.id) } } : {}),
+        },
+        select: { city: true, region: true, name: true, categoryNormalized: true },
+      });
+      const cities = [...new Set(offers.flatMap((o) => [o.city, o.region].filter(Boolean)))] as string[];
+      const { cityMatches } = await import("@/offer-engine/eligibility");
+      const matched = city
+        ? offers.filter((o) => cityMatches(o.city, o.region, city))
+        : [];
+      return {
+        city: city || null,
+        available: city ? matched.length > 0 : false,
+        matching_offers: matched.length,
+        book_cities: cities,
+        policy: "somente book ACTIVE / ofertas APROVADAS",
+      };
+    }
+    case "get_portability_info": {
+      const { loadSalesConversationState } = await import("@/sales/persist-state");
+      const state = await loadSalesConversationState(ctx.conversationId);
+      const docs = await retrieveKnowledge(String(args.query ?? "portabilidade"), [
+        "FAQ",
+        "POLITICAS",
+        "REGRAS_COMERCIAIS",
+        "PROCEDIMENTOS",
+      ]);
+      return {
+        lead: {
+          operadora_atual: state.operadora_atual,
+          portabilidade: state.portabilidade,
+          ddd_origem: state.ddd_origem,
+        },
+        rules: docs.map((d) => ({ title: d.title, content: d.content.slice(0, 500) })),
+        policy: "sem inventar prazo ou taxa de portabilidade",
+      };
+    }
+    case "get_sale_status": {
+      const conv = await prisma.conversation.findUnique({
+        where: { id: ctx.conversationId },
+        include: {
+          lead: { include: { acceptances: true, preSales: true } },
+          handoffs: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
+      });
+      return {
+        salesStage: conv?.salesStage,
+        aiEnabled: conv?.aiEnabled,
+        status: conv?.status,
+        acceptance: conv?.lead.acceptances[0] ?? null,
+        preSale: conv?.lead.preSales[0] ?? null,
+        last_handoff: conv?.handoffs[0]
+          ? { reason: conv.handoffs[0].reason, notes: conv.handoffs[0].notes, status: conv.handoffs[0].status }
+          : null,
+      };
+    }
+    case "get_documentation_requirements": {
+      const productType = String(args.productType ?? "fibra");
+      const defs = await prisma.requiredFieldDefinition.findMany({
+        where: { productType, required: true },
+      });
+      return {
+        fields: defs.map((d) => ({ key: d.fieldKey, label: d.label })),
+        policy: "somente campos cadastrados; peça um por vez",
+      };
+    }
     case "request_human_handoff": {
+      const { loadSalesConversationState } = await import("@/sales/persist-state");
+      const sales = await loadSalesConversationState(ctx.conversationId);
+      const inbound = await prisma.message.findFirst({
+        where: { conversationId: ctx.conversationId, direction: "INBOUND" },
+        orderBy: { createdAt: "desc" },
+      });
+      const asked =
+        sales.handoff_required ||
+        /atendente|humano|operador|pessoa de verdade/i.test(inbound?.body ?? "");
+      const rawReason = String(args.reason ?? "");
+      const allowedNow =
+        asked ||
+        ["RECLAMACAO", "CASO_SENSIVEL", "FALHA_VIABILIDADE", "EXCECAO_COMERCIAL", "INFORMACAO_NAO_ENCONTRADA"].includes(
+          rawReason,
+        );
+      if (!allowedNow) {
+        return {
+          handoff: false,
+          error: "handoff_nao_autorizado",
+          hint: "Cliente ter respondido não pausa a IA. Continue com ferramentas e o estado do lead.",
+        };
+      }
       await prisma.conversation.update({
         where: { id: ctx.conversationId },
         data: { status: "HANDOFF_HUMANO", aiEnabled: false, salesStage: "HUMAN_HANDOFF" },
@@ -429,7 +579,7 @@ export async function runTool(
       ];
       const raw = String(args.reason ?? "");
       const reason = (allowed.includes(raw as HandoffReason) ? raw : "INFORMACAO_NAO_ENCONTRADA") as HandoffReason;
-      const notes = [args.notes, allowed.includes(raw as HandoffReason) ? null : raw]
+      const notes = [args.notes, allowed.includes(raw as HandoffReason) ? null : rawReason]
         .filter(Boolean)
         .join(" — ")
         .slice(0, 400);

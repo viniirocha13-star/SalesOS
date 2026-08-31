@@ -20,7 +20,13 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       },
     });
     await prisma.humanHandoff.create({
-      data: { conversationId: id, reason: "CLIENTE_SOLICITOU", assignedToId: user.id, status: "EM_ATENDIMENTO" },
+      data: {
+        conversationId: id,
+        reason: "CLIENTE_SOLICITOU",
+        assignedToId: user.id,
+        status: "EM_ATENDIMENTO",
+        notes: "handoff_reason=OPERADOR_ASSUMIU",
+      },
     });
     await prisma.message.create({
       data: {

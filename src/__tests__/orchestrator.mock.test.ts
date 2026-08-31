@@ -58,6 +58,32 @@ vi.mock("@/ai/memory", () => ({
   refreshConversationMemory: vi.fn(async () => ({})),
 }));
 
+vi.mock("@/sales/persist-state", () => ({
+  persistExtractedTurn: vi.fn(async () => ({
+    intent: "buy",
+    cidade: "Caucaia",
+    produto_interesse: "internet",
+    internet_interesse: true,
+    portabilidade: null,
+    operadora_atual: null,
+    quantidade_linhas: null,
+    perfil_cliente: null,
+    oferta_interesse: null,
+    objections: [],
+    qualification_status: "partial",
+    missing_fields: [],
+    next_best_action: "consult_offers",
+    handoff_required: false,
+    handoff_reason: null,
+    refused_products: [],
+    ddd_origem: null,
+    current_bill: null,
+    last_customer_utterance: null,
+    presented_greeting: true,
+  })),
+  loadSalesConversationState: vi.fn(async () => ({ cidade: "Caucaia" })),
+}));
+
 vi.mock("@/ai/tools", () => ({
   SALES_TOOLS: [{ name: "search_eligible_offers", description: "", parameters: {} }],
   runTool: vi.fn(async () => ({

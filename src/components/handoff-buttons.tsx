@@ -13,7 +13,7 @@ export function HandoffButton({ conversationId }: { conversationId: string }) {
         router.refresh();
       }}
     >
-      Transferir para humano
+      Assumir conversa
     </Button>
   );
 }
@@ -28,7 +28,7 @@ export function ReturnToAiButton({ conversationId }: { conversationId: string })
         router.refresh();
       }}
     >
-      Devolver para IA
+      Devolver para Luna
     </Button>
   );
 }
