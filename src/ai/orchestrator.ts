@@ -377,26 +377,6 @@ async function recordExecution(
   });
 }
 
-async function markHumanReview(conversationId: string, leadId: string, reason: string) {
-  await prisma.conversation.update({
-    where: { id: conversationId },
-    data: { aiEnabled: false, status: "HANDOFF_HUMANO", salesStage: "HUMAN_HANDOFF" },
-  });
-  await prisma.humanHandoff.create({
-    data: { conversationId, reason: "FALHA_REPETIDA_IA", notes: reason.slice(0, 400) },
-  });
-  await prisma.message.create({
-    data: {
-      conversationId,
-      direction: "OUTBOUND",
-      actor: "SYSTEM",
-      body: "A conversa foi marcada para revisão humana. Um operador assume em seguida.",
-      status: "SENT",
-    },
-  });
-  void leadId;
-}
-
 export async function setSalesStage(conversationId: string, to: SalesStage | string, reason: string, actor: string) {
   const allowed = new Set<string>([
     "NEW",

@@ -13,6 +13,6 @@ Princípio: o LLM não é fonte de verdade comercial. Prompt = personalidade; fa
 - Laboratório em `/conversas` mostra metadados (sem chain-of-thought)
 - Offer Engine filtra APROVADA + vigência + cidade
 - Uso gravado em `AIExecution` (tokens + custo estimado)
-- Falha OpenAI após retries do worker → conversa em HUMAN_REVIEW (`aiEnabled=false`)
+- Falha OpenAI no turno: a Luna responde de recuperação e **não** pausa a conversa. Handoff só por regra explícita, pedido do cliente ou operador.
 - Lock Redis `lock:conversation:{id}` — uma geração por conversa
 - Se entrar inbound novo (`Conversation.version`) durante a geração, a resposta é descartada e o buffer reprocessa
