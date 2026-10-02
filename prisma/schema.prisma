@@ -265,6 +265,25 @@ model User {
   auditLogs             AuditLog[]
   humanHandoffs         HumanHandoff[]
   assignedConversations Conversation[] @relation("ConversationOwner")
+  invitesCreated        Invite[]
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  email       String?
+  name        String?
+  role        Role      @default(OPERADOR)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  revokedAt   DateTime?
+  createdById String
+  createdAt   DateTime  @default(now())
+
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([email])
 }
 
 model Lead {

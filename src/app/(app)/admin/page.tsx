@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { formatDateTime } from "@/lib/format";
 import { UserForm } from "@/components/user-form";
+import { MagicInviteForm } from "@/components/magic-invite-form";
 import { PageHeader } from "@/components/page-header";
 import { auth } from "@/auth";
 import { can } from "@/lib/rbac";
@@ -25,6 +26,14 @@ export default async function AdminPage() {
           <Link className="underline" href="/admin/laboratorio">Laboratório IA</Link>
           <Link className="underline" href="/ofertas#upload-book">Upload do book vigente</Link>
         </div>
+      </section>
+      <section className="surface p-5">
+        <h2 className="font-heading mb-3 text-xl">Convite mágico</h2>
+        {canUsers ? (
+          <MagicInviteForm />
+        ) : (
+          <p className="text-sm text-ink/50">Somente admin gera convites.</p>
+        )}
       </section>
       <section className="surface p-5">
         <h2 className="font-heading mb-3 text-xl">Usuários e RBAC</h2>
