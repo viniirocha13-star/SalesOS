@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { acceptInviteAction } from "@/app/convite/actions";
 
 export function AcceptInviteForm({
   token,
@@ -16,9 +16,7 @@ export function AcceptInviteForm({
   suggestedName: string | null;
   role: string;
 }) {
-  const router = useRouter();
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, action, pending] = useActionState(acceptInviteAction, "");
 
   return (
     <div className="w-full max-w-md">
@@ -27,32 +25,8 @@ export function AcceptInviteForm({
       <p className="mt-2 mb-8 text-[15px] text-slate-500">
         Crie sua senha para entrar como {role.toLowerCase()}.
       </p>
-      <form
-        className="space-y-5"
-        onSubmit={async (event) => {
-          event.preventDefault();
-          setLoading(true);
-          setError("");
-          const form = new FormData(event.currentTarget);
-          const res = await fetch("/api/invites/accept", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              token,
-              name: String(form.get("name") ?? ""),
-              email: String(form.get("email") ?? ""),
-              password: String(form.get("password") ?? ""),
-            }),
-          });
-          const json = await res.json();
-          if (!res.ok) {
-            setLoading(false);
-            setError(json.error || "Não foi possível aceitar o convite.");
-            return;
-          }
-          router.push("/login?convite=ok");
-        }}
-      >
+      <form action={action} method="post" className="space-y-5">
+        <input type="hidden" name="token" value={token} />
         <div className="space-y-2">
           <Label htmlFor="name">Nome</Label>
           <Input id="name" name="name" required defaultValue={suggestedName ?? ""} className="h-12 rounded-xl bg-slate-50" />
@@ -89,10 +63,10 @@ export function AcceptInviteForm({
         )}
         <button
           type="submit"
-          disabled={loading}
+          disabled={pending}
           className="h-12 w-full rounded-xl bg-teal text-[15px] font-medium text-white transition-colors hover:bg-[#0d8a77] disabled:opacity-60"
         >
-          {loading ? "Criando acesso..." : "Ativar acesso"}
+          {pending ? "Criando acesso..." : "Ativar acesso"}
         </button>
       </form>
     </div>
