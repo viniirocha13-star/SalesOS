@@ -24,6 +24,11 @@ export function LoginForm() {
       <p className="mb-2 text-[11px] font-semibold tracking-[0.16em] text-teal uppercase lg:hidden">Sales OS</p>
       <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Entrar no Sales OS</h1>
       <p className="mt-2 mb-8 text-[15px] text-slate-500">Acesso restrito a operadores e gestores comerciais.</p>
+      {params.get("convite") === "ok" && (
+        <p className="mb-6 rounded-lg bg-teal/10 px-3 py-2 text-sm text-teal">
+          Acesso criado. Entre com o e-mail e a senha do convite.
+        </p>
+      )}
       <form
         method="post"
         action="/login"

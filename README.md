@@ -64,6 +64,7 @@ Outros usuários seed (mesma senha): `rachel.c@example.org` (supervisor), `zoe.m
 - Laboratório `/conversas` — roteiro de teste até o cliente enviar nome, CPF, endereço e CEP; o card aparece em Tarefas (`/home`)
 - Integrações `/admin/integracoes`
 - Diagnóstico `/admin/diagnostico`
+- Convite mágico `/admin` — gera link de 72h para o convidado criar a própria senha em `/convite/[token]`
 - Pós-venda `/pos-venda`
 
 WhatsApp real: preencha as variáveis Meta no `.env` e aponte o webhook para `/api/whatsapp/webhook`. Sem chave OpenAI o laboratório usa `DevMockLlmProvider` (identificado na UI).

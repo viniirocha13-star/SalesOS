@@ -45,6 +45,8 @@ export const authConfig = {
       const { pathname } = request.nextUrl;
       if (
         pathname.startsWith("/login") ||
+        pathname.startsWith("/convite") ||
+        pathname.startsWith("/api/invites/accept") ||
         pathname.startsWith("/api/auth") ||
         pathname.startsWith("/api/whatsapp/webhook") ||
         pathname.startsWith("/api/leads/capture") ||

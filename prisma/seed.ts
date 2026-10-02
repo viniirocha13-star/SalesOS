@@ -20,6 +20,7 @@ async function main() {
   await prisma.requiredFieldDefinition.deleteMany();
   await prisma.aIExecution.deleteMany();
   await prisma.auditLog.deleteMany();
+  await prisma.invite.deleteMany();
   await prisma.saleEvent.deleteMany();
   await prisma.sale.deleteMany();
   await prisma.preSale.deleteMany();
