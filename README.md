@@ -4,6 +4,22 @@ CRM operacional multi-tenant (primeiro uso: telecom). A IA conversa; o backend �
 
 Documentação em `docs/`: ARCHITECTURE, DATABASE, WHATSAPP, AI, LUNA, SECURITY, DEPLOYMENT, ENVIRONMENT, RUNBOOK.
 
+## PLIM AUTOMAÇÃO (PLIM PROMOS)
+
+Camada de automação de afiliados sobre este Sales OS (`brisa-sales-ai`). Especificação: `docs/PLIM-ESPECIFICACAO.md`. Arquitetura e convenções: `docs/ARQUITETURA.md`.
+
+```bash
+# Após migrate + seed (inclui dados DEMO PLIM)
+npm run dev:web
+# Login seed → redireciona para /plim (Visão Geral)
+```
+
+Variáveis novas (ver `.env.example`): `CRON_SECRET`, `PLIM_STORAGE_DRIVER`, `SUPABASE_*` (storage produção).
+
+Cron Vercel (fila stub Etapa 1): `GET /api/cron/queue` com header `Authorization: Bearer $CRON_SECRET`.
+
+Rotas: módulos PLIM em `/plim/*`; book de ofertas Sales OS permanece em `/ofertas`.
+
 ## Porta e URL reais
 
 A porta de desenvolvimento é **uma só**, via `APP_PORT` (veja `.env.example`):

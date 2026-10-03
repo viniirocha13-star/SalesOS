@@ -247,6 +247,15 @@ model Tenant {
   users     User[]
   leads     Lead[]
   conversations Conversation[]
+  plimSettings PlimWorkspaceSettings?
+  plimGroups   PlimGroup[]
+  plimOffers   PlimOffer[]
+  plimRoutes   PlimRoute[]
+  plimAutopilots PlimAutopilot[]
+  plimQueueItems PlimQueueItem[]
+  plimClicks   PlimClickEvent[]
+  plimCommissions PlimCommissionEvent[]
+  plimChannelConnections PlimChannelConnection[]
 }
 model User {
   id           String   @id @default(cuid())
@@ -255,6 +264,7 @@ model User {
   email        String    @unique
   passwordHash String
   role         Role     @default(OPERADOR)
+  plimProfile  PlimProfile?
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -946,4 +956,234 @@ model WorkflowExecution {
   currentOrder   Int      @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+// —— PLIM AUTOMAÇÃO (Etapa 1) ——
+
+enum PlimProfile {
+  ADMIN
+  OPERADOR
+  VISUALIZADOR
+}
+
+enum PlimOfferStatus {
+  NOVA
+  EM_ANALISE
+  APROVADA
+  PROGRAMADA
+  NA_FILA
+  PUBLICADA
+  IGNORADA
+  ERRO
+}
+
+enum PlimMarketplace {
+  MERCADO_LIVRE
+  SHOPEE
+  AMAZON
+  MAGALU
+  ALIEXPRESS
+  SHEIN
+  AWIN
+  OUTRO
+}
+
+enum PlimQueueItemStatus {
+  AGUARDANDO
+  PROCESSANDO
+  ENVIADO
+  FALHOU
+  CANCELADO
+}
+
+enum PlimChannelPlatform {
+  WHATSAPP
+  TELEGRAM
+  INSTAGRAM
+  EXTERNO
+}
+
+enum PlimGroupRole {
+  ORIGEM
+  DESTINO
+}
+
+enum PlimRouteStatus {
+  ATIVA
+  PAUSADA
+  ARQUIVADA
+}
+
+enum PlimAutopilotStatus {
+  ATIVO
+  PAUSADO
+  ARQUIVADO
+}
+
+model PlimWorkspaceSettings {
+  id          String   @id @default(cuid())
+  tenantId    String   @unique
+  workspaceName String @default("PLIM AUTOMAÇÃO")
+  timezone    String   @default("America/Sao_Paulo")
+  testMode    Boolean  @default(true)
+  brandName   String   @default("PLIM PROMOS")
+  brandColor  String   @default("#7C3AED")
+  logoPath    String?
+  logoMargin  Int      @default(12)
+  logoSize    Int      @default(64)
+  logoOpacity Float    @default(0.92)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model PlimGroup {
+  id              String              @id @default(cuid())
+  tenantId        String
+  name            String
+  platform        PlimChannelPlatform
+  groupRole       PlimGroupRole       @default(DESTINO)
+  externalId      String?
+  niche           String?
+  memberCount     Int?
+  active          Boolean             @default(true)
+  dailyLimit      Int?
+  minIntervalSec  Int?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clicks PlimClickEvent[]
+
+  @@index([tenantId])
+}
+
+model PlimChannelConnection {
+  id          String              @id @default(cuid())
+  tenantId    String
+  platform    PlimChannelPlatform
+  label       String
+  status      String              @default("DISCONNECTED")
+  lastSeenAt  DateTime?
+  sendCount   Int                 @default(0)
+  errorCount  Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, platform])
+}
+
+model PlimOffer {
+  id              String           @id @default(cuid())
+  tenantId        String
+  productName     String
+  description     String?          @db.Text
+  imageUrl        String?
+  originalPrice   Decimal?         @db.Decimal(12, 2)
+  currentPrice    Decimal?         @db.Decimal(12, 2)
+  discountPercent Int?
+  coupon          String?
+  marketplace     PlimMarketplace
+  originalLink    String?
+  affiliateLink   String?
+  shortLink       String?
+  category        String?
+  tags            String[]         @default([])
+  source          String?
+  capturedAt      DateTime         @default(now())
+  publishedAt     DateTime?
+  status          PlimOfferStatus  @default(NOVA)
+  isDemo          Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  clicks PlimClickEvent[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, capturedAt])
+}
+
+model PlimRoute {
+  id          String          @id @default(cuid())
+  tenantId    String
+  name        String
+  status      PlimRouteStatus @default(ATIVA)
+  isDemo      Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model PlimAutopilot {
+  id          String              @id @default(cuid())
+  tenantId    String
+  name        String
+  marketplace PlimMarketplace?
+  status      PlimAutopilotStatus @default(ATIVO)
+  isDemo      Boolean             @default(false)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model PlimQueueItem {
+  id          String              @id @default(cuid())
+  tenantId    String
+  position    Int                 @default(0)
+  productName String
+  destination String?
+  scheduledAt DateTime?
+  status      PlimQueueItemStatus @default(AGUARDANDO)
+  lastError   String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+}
+
+model PlimClickEvent {
+  id          String           @id @default(cuid())
+  tenantId    String
+  offerId     String?
+  groupId     String?
+  marketplace PlimMarketplace?
+  campaign    String?
+  clickedAt   DateTime         @default(now())
+  userAgent   String?
+  referrer    String?
+  isDemo      Boolean          @default(false)
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  offer  PlimOffer? @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  group  PlimGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, clickedAt])
+}
+
+model PlimCommissionEvent {
+  id          String           @id @default(cuid())
+  tenantId    String
+  marketplace PlimMarketplace
+  orderId     String?
+  productName String?
+  amount      Decimal          @db.Decimal(12, 2)
+  commission  Decimal          @db.Decimal(12, 2)
+  occurredAt  DateTime         @default(now())
+  isDemo      Boolean          @default(true)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, occurredAt])
 }

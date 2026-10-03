@@ -17,11 +17,14 @@ export default auth((request) => {
     pathname.startsWith("/api/whatsapp/webhook") ||
     pathname.startsWith("/api/leads/capture") ||
     pathname.startsWith("/api/health") ||
+    pathname.startsWith("/api/cron/queue") ||
+    pathname.startsWith("/manifest") ||
+    pathname.startsWith("/sw.js") ||
     pathname.startsWith("/api/ready") ||
     pathname.startsWith("/_next")
   ) {
     if (pathname.startsWith("/login") && request.auth?.user) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return NextResponse.redirect(new URL("/plim", request.url));
     }
     return NextResponse.next();
   }
