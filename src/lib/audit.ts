@@ -3,6 +3,7 @@ import { maskForLog } from "@/lib/pii";
 
 export async function audit(input: {
   actorId?: string | null;
+  organizationId?: string | null;
   action: string;
   entity: string;
   entityId?: string | null;
@@ -15,6 +16,7 @@ export async function audit(input: {
   await prisma.auditLog.create({
     data: {
       actorId: input.actorId ?? undefined,
+      organizationId: input.organizationId ?? undefined,
       action: input.action,
       entity: input.entity,
       entityId: input.entityId ?? undefined,

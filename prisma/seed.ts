@@ -45,6 +45,34 @@ async function main() {
   await prisma.promptVersion.deleteMany();
   await prisma.prompt.deleteMany();
 
+  // ZapTurbo SaaS
+  await prisma.automationRun.deleteMany();
+  await prisma.automation.deleteMany();
+  await prisma.messageCost.deleteMany();
+  await prisma.waMessage.deleteMany();
+  await prisma.waCampaignRecipient.deleteMany();
+  await prisma.waCampaign.deleteMany();
+  await prisma.messageTemplate.deleteMany();
+  await prisma.contactTag.deleteMany();
+  await prisma.contactListMember.deleteMany();
+  await prisma.contactConsent.deleteMany();
+  await prisma.contactImport.deleteMany();
+  await prisma.waConversation.deleteMany();
+  await prisma.contact.deleteMany();
+  await prisma.contactList.deleteMany();
+  await prisma.tag.deleteMany();
+  await prisma.phoneNumber.deleteMany();
+  await prisma.whatsAppBusinessAccount.deleteMany();
+  await prisma.metaConnection.deleteMany();
+  await prisma.webhookEvent.deleteMany();
+  await prisma.pricingRate.deleteMany();
+  await prisma.usageRecord.deleteMany();
+  await prisma.subscription.deleteMany();
+  await prisma.systemAlert.deleteMany();
+  await prisma.organizationMember.deleteMany();
+  await prisma.organization.deleteMany();
+  await prisma.plan.deleteMany();
+
   const tenant = await prisma.tenant.upsert({
     where: { slug: "default" },
     update: {},
@@ -490,6 +518,74 @@ async function main() {
   });
 
   await prisma.user.updateMany({ data: { tenantId: tenant.id } });
+
+  const plans = [
+    { slug: "starter", name: "Starter", priceCents: 9700, maxUsers: 3, maxContacts: 1000, maxMessagesPerMonth: 5000, maxPhoneNumbers: 1, maxAutomations: 3, sortOrder: 1 },
+    { slug: "growth", name: "Growth", priceCents: 29700, maxUsers: 10, maxContacts: 10000, maxMessagesPerMonth: 50000, maxPhoneNumbers: 3, maxAutomations: 20, sortOrder: 2 },
+    { slug: "pro", name: "Profissional", priceCents: 59700, maxUsers: 30, maxContacts: 50000, maxMessagesPerMonth: 200000, maxPhoneNumbers: 10, maxAutomations: 100, sortOrder: 3 },
+    { slug: "enterprise", name: "Enterprise", priceCents: 0, maxUsers: 999, maxContacts: 1000000, maxMessagesPerMonth: 2000000, maxPhoneNumbers: 50, maxAutomations: 999, sortOrder: 4 },
+  ];
+  for (const p of plans) {
+    await prisma.plan.upsert({
+      where: { slug: p.slug },
+      create: p,
+      update: p,
+    });
+  }
+
+  const starter = await prisma.plan.findUniqueOrThrow({ where: { slug: "starter" } });
+  const org = await prisma.organization.upsert({
+    where: { slug: "minha-empresa" },
+    update: {},
+    create: {
+      name: "Minha Empresa",
+      slug: "minha-empresa",
+      tradeName: "Minha Empresa",
+      country: "BR",
+    },
+  });
+  await prisma.organizationMember.upsert({
+    where: { organizationId_userId: { organizationId: org.id, userId: admin.id } },
+    update: { role: "OWNER" },
+    create: { organizationId: org.id, userId: admin.id, role: "OWNER" },
+  });
+  await prisma.metaConnection.upsert({
+    where: { organizationId: org.id },
+    update: {},
+    create: { organizationId: org.id, status: "NOT_CONNECTED" },
+  });
+  const trialStart = new Date();
+  const trialEnd = new Date(trialStart);
+  trialEnd.setDate(trialEnd.getDate() + 14);
+  await prisma.subscription.upsert({
+    where: { organizationId: org.id },
+    update: { planId: starter.id },
+    create: {
+      organizationId: org.id,
+      planId: starter.id,
+      status: "TRIALING",
+      currentPeriodStart: trialStart,
+      currentPeriodEnd: trialEnd,
+    },
+  });
+
+  // Tarifas de exemplo (configuráveis — NÃO são garantia da Meta)
+  for (const row of [
+    { category: "MARKETING" as const, rate: 0.0625 },
+    { category: "UTILITY" as const, rate: 0.04 },
+    { category: "AUTHENTICATION" as const, rate: 0.0315 },
+  ]) {
+    await prisma.pricingRate.create({
+      data: {
+        organizationId: org.id,
+        market: "BR",
+        category: row.category,
+        currency: "BRL",
+        rate: row.rate,
+        source: "seed_example",
+      },
+    });
+  }
 
   const prompt = await prisma.prompt.create({
     data: { slug: "sales_system", name: "Prompt Terra (vendedor)" },

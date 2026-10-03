@@ -45,8 +45,10 @@ export const authConfig = {
       const { pathname } = request.nextUrl;
       if (
         pathname.startsWith("/login") ||
+        pathname.startsWith("/register") ||
         pathname.startsWith("/api/auth") ||
         pathname.startsWith("/api/whatsapp/webhook") ||
+        pathname.startsWith("/api/webhooks/meta") ||
         pathname.startsWith("/api/leads/capture") ||
         pathname.startsWith("/api/health") ||
         pathname.startsWith("/api/ready")

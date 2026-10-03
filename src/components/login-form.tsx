@@ -11,9 +11,9 @@ export function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
-  const destRaw = params.get("from") || params.get("callbackUrl") || "/dashboard";
+  const destRaw = params.get("from") || params.get("callbackUrl") || "/visao-geral";
   const dest =
-    destRaw.startsWith("/") && !destRaw.startsWith("//") && destRaw !== "/login" ? destRaw : "/dashboard";
+    destRaw.startsWith("/") && !destRaw.startsWith("//") && destRaw !== "/login" ? destRaw : "/visao-geral";
 
   useEffect(() => {
     setReady(true);
@@ -21,9 +21,11 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-md">
-      <p className="mb-2 text-[11px] font-semibold tracking-[0.16em] text-teal uppercase lg:hidden">Sales OS</p>
-      <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Entrar no Sales OS</h1>
-      <p className="mt-2 mb-8 text-[15px] text-slate-500">Acesso restrito a operadores e gestores comerciais.</p>
+      <p className="mb-2 text-[11px] font-semibold tracking-[0.16em] text-[#148a52] uppercase lg:hidden">ZapTurbo</p>
+      <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Entrar no ZapTurbo</h1>
+      <p className="mt-2 mb-8 text-[15px] text-slate-500">
+        Automação oficial para WhatsApp Business. Acesso da sua empresa.
+      </p>
       <form
         method="post"
         action="/login"
@@ -85,7 +87,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={!ready || loading}
-          className="h-12 w-full rounded-xl bg-teal text-[15px] font-medium text-white transition-colors hover:bg-[#0d8a77] disabled:opacity-60"
+          className="h-12 w-full rounded-xl bg-[#1fad6c] text-[15px] font-medium text-white transition-colors hover:bg-[#18965c] disabled:opacity-60"
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>

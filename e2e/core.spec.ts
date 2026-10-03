@@ -8,10 +8,10 @@ async function login(page: import("@playwright/test").Page, email = "ursula.b@ex
   await page.getByRole("button", { name: "Entrar" }).click();
 }
 
-test("login válido abre o dashboard", async ({ page }) => {
+test("login válido abre o dashboard ZapTurbo", async ({ page }) => {
   await login(page);
-  await expect(page).toHaveURL(/\/dashboard/);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
+  await expect(page).toHaveURL(/\/(visao-geral|onboarding)/);
+  await expect(page.getByText(/Olá,|Começar a operar|ZapTurbo/i).first()).toBeVisible({ timeout: 20_000 });
 });
 
 test("credenciais inválidas mostram alerta", async ({ page }) => {
@@ -23,20 +23,19 @@ test("credenciais inválidas mostram alerta", async ({ page }) => {
 test("rota protegida deslogado redireciona para login", async ({ page }) => {
   await page.goto("/leads");
   await expect(page).toHaveURL(/\/login/);
-  await expect(page.getByRole("heading", { name: "Entrar no Sales OS" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Entrar no ZapTurbo" })).toBeVisible();
 });
 
 test("login → Books e ofertas", async ({ page }) => {
   await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("link", { name: "Ofertas" }).click();
+  await expect(page).toHaveURL(/\/(visao-geral|onboarding|dashboard)/);
+  await page.goto("/ofertas");
   await expect(page.getByRole("heading", { name: "Books e ofertas" })).toBeVisible();
 });
 
 test("login → Leads → abrir lead", async ({ page }) => {
   await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("link", { name: "Leads" }).click();
+  await page.goto("/leads");
   await expect(page.getByRole("heading", { name: "Leads" })).toBeVisible();
   await page.getByRole("link", { name: "Maria Alves" }).click();
   await expect(page.getByRole("heading", { name: "Maria Alves" })).toBeVisible();
@@ -45,8 +44,7 @@ test("login → Leads → abrir lead", async ({ page }) => {
 
 test("login → Inbox → abrir conversa", async ({ page }) => {
   await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("link", { name: "Inbox" }).click();
+  await page.goto("/inbox");
   await expect(page.getByRole("heading", { name: "Inbox WhatsApp" })).toBeVisible();
   await page.getByRole("button", { name: /Conversa Maria Alves/ }).click();
   await expect(page.getByRole("heading", { name: "Lead" })).toBeVisible();
@@ -54,8 +52,7 @@ test("login → Inbox → abrir conversa", async ({ page }) => {
 
 test("Laboratório: objeção de preço sem desconto inventado", async ({ page }) => {
   await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("link", { name: "Laboratório" }).click();
+  await page.goto("/conversas");
   await page.getByTestId("new-simulator").click();
   await expect(page).toHaveURL(/\/conversas\/.+/);
   await expect(page.getByText("Laboratório IA")).toBeVisible({ timeout: 20_000 });
@@ -70,8 +67,7 @@ test("Laboratório: objeção de preço sem desconto inventado", async ({ page }
 
 test("Laboratório: venda até o cliente enviar os dados", async ({ page }) => {
   await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("link", { name: "Laboratório" }).click();
+  await page.goto("/conversas");
   await page.getByTestId("new-simulator").click();
   await expect(page).toHaveURL(/\/conversas\/.+/);
   await expect(page.getByText("Roteiro de teste")).toBeVisible({ timeout: 20_000 });
@@ -86,8 +82,7 @@ test("Laboratório: venda até o cliente enviar os dados", async ({ page }) => {
 
 test("Laboratório abre conversa", async ({ page }) => {
   await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("link", { name: "Laboratório" }).click();
+  await page.goto("/conversas");
   await expect(page.getByRole("heading", { name: "Conversas" })).toBeVisible();
   await page.getByRole("link", { name: /Maria Alves|SIMULATOR|WHATSAPP/ }).first().click();
   await expect(page.getByText("Laboratório IA")).toBeVisible();
@@ -95,8 +90,7 @@ test("Laboratório abre conversa", async ({ page }) => {
 
 test("Inbox → assumir → composer humano → devolver para IA", async ({ page }) => {
   await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("link", { name: "Inbox" }).click();
+  await page.goto("/inbox");
   await page.getByRole("button", { name: /Conversa Maria Alves/ }).click();
   await expect(page.getByRole("heading", { name: "Lead" })).toBeVisible();
   await expect(page.getByText(/IA respondendo|Humano no comando/)).toBeVisible({ timeout: 10_000 });
@@ -113,4 +107,15 @@ test("Inbox → assumir → composer humano → devolver para IA", async ({ page
   await expect(page.getByText("Confirmando cobertura com você.").first()).toBeVisible();
   await page.getByTestId("return-to-ai").click();
   await expect(page.getByText("IA respondendo", { exact: true })).toBeVisible({ timeout: 10_000 });
+});
+
+test("ZapTurbo: passo a passo e conectar WhatsApp", async ({ page }) => {
+  await login(page);
+  await page.goto("/onboarding");
+  await expect(page.getByText(/Passo a passo|Começar a operar|Crie sua empresa/i).first()).toBeVisible({
+    timeout: 20_000,
+  });
+  await page.goto("/conectar");
+  await expect(page.getByRole("heading", { name: "Integração Meta" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/Status da conexão|Não conectado|Conectado/i).first()).toBeVisible();
 });

@@ -17,6 +17,8 @@ const PREFIXES: { prefix: string; permission: string }[] = [
   { prefix: "/relatorios", permission: "reports.view" },
   { prefix: "/admin", permission: "admin.audit" },
   { prefix: "/dashboard", permission: "dashboard.view" },
+  // Módulo WhatsApp SaaS — liberado a qualquer usuário autenticado;
+  // o RBAC fino (OrgRole) é aplicado nas APIs e páginas via requireOrg.
 ];
 
 export function permissionForPath(pathname: string): string | null {
