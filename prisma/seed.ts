@@ -46,6 +46,10 @@ async function main() {
   await prisma.prompt.deleteMany();
   await prisma.plimClickEvent.deleteMany();
   await prisma.plimCommissionEvent.deleteMany();
+  await prisma.plimContact.deleteMany();
+  await prisma.plimExclusion.deleteMany();
+  await prisma.plimErrorLog.deleteMany();
+  await prisma.plimCampaignMap.deleteMany();
   await prisma.plimQueueItem.deleteMany();
   await prisma.plimOffer.deleteMany();
   await prisma.plimRoute.deleteMany();
@@ -688,9 +692,23 @@ async function main() {
       groupId: groups[i % groups.length].id,
       marketplace: offers[i % offers.length].marketplace,
       campaign: "demo-campanha",
+      destination: offers[i % offers.length].shortLink ?? offers[i % offers.length].affiliateLink,
+      utmSource: "whatsapp",
+      utmMedium: "grupo",
+      utmCampaign: "demo-campanha",
       clickedAt: new Date(Date.now() - i * 1800_000),
       isDemo: true,
     })),
+  });
+
+  await prisma.plimCampaignMap.create({
+    data: {
+      tenantId: tenant.id,
+      name: "demo-campanha",
+      groupId: groups[0].id,
+      linkUrl: offers[0].shortLink ?? offers[0].affiliateLink,
+      investment: 50,
+    },
   });
 
   const mkts = ["SHOPEE", "MERCADO_LIVRE", "AMAZON", "MAGALU", "ALIEXPRESS", "SHEIN", "AWIN"] as const;
