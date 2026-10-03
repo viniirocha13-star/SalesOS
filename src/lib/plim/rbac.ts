@@ -3,6 +3,10 @@ import type { PlimProfile } from "@prisma/client";
 const plimPermissions: Record<string, PlimProfile[]> = {
   "plim.dashboard": ["ADMIN", "OPERADOR", "VISUALIZADOR"],
   "plim.offers.write": ["ADMIN", "OPERADOR"],
+  "plim.queue.write": ["ADMIN", "OPERADOR"],
+  "plim.groups.write": ["ADMIN", "OPERADOR"],
+  "plim.routes.write": ["ADMIN", "OPERADOR"],
+  "plim.integrations.write": ["ADMIN", "OPERADOR"],
   "plim.settings": ["ADMIN"],
   "plim.settings.view": ["ADMIN", "OPERADOR", "VISUALIZADOR"],
   "plim.users": ["ADMIN"],

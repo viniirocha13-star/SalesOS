@@ -16,9 +16,10 @@ export class BullMqQueueService implements QueueService {
     return job.id ?? `${name}-${Date.now()}`;
   }
 
-  async processBatch(_limit: number) {
-    // Etapa 1: stub — worker dedicado processará na Etapa 3
-    return { processed: 0, failed: 0 };
+  async processBatch(limit: number) {
+    const { materializeDueSchedules, processPlimQueueBatch } = await import("@/lib/plim/queue-processor");
+    await materializeDueSchedules();
+    return processPlimQueueBatch(limit);
   }
 
   async depth() {

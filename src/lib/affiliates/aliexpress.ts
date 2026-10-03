@@ -1,4 +1,5 @@
 import type { AffiliateAdapter, AffiliateConvertInput, AffiliateConvertResult } from "@/lib/affiliates/types";
+import { requireEnv } from "@/lib/affiliates/errors";
 
 export const aliexpressAdapter: AffiliateAdapter = {
   marketplace: "ALIEXPRESS",
@@ -9,6 +10,11 @@ export const aliexpressAdapter: AffiliateAdapter = {
     return true;
   },
   async convert(input: AffiliateConvertInput): Promise<AffiliateConvertResult> {
-    return { marketplace: "ALIEXPRESS", affiliateUrl: input.url, subId: input.subId, campaign: input.campaign };
+    const tracking = requireEnv("PLIM_ALIEXPRESS_TRACKING_ID", "AliExpress");
+    const sep = input.url.includes("?") ? "&" : "?";
+    const affiliateUrl = `${input.url}${sep}aff_platform=api&aff_trace_key=${encodeURIComponent(tracking)}${
+      input.subId ? `&sub_id=${encodeURIComponent(input.subId)}` : ""
+    }`;
+    return { marketplace: "ALIEXPRESS", affiliateUrl, subId: input.subId, campaign: input.campaign };
   },
 };

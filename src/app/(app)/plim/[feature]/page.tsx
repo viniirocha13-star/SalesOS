@@ -2,19 +2,7 @@ import { EmBreve } from "@/components/plim/em-breve";
 import { notFound } from "next/navigation";
 
 const FEATURES: Record<string, string> = {
-  ofertas: "Ofertas",
-  rotas: "Rotas",
-  piloto: "Piloto Automático",
-  agendamentos: "Agendamentos",
-  grupos: "Grupos e Canais",
-  whatsapp: "WhatsApp",
-  telegram: "Telegram",
-  instagram: "Instagram",
-  afiliados: "Afiliados",
-  conversor: "Conversor de Links",
-  editor: "Editor de Ofertas",
   imagens: "Biblioteca de Imagens",
-  filas: "Filas",
   comissoes: "Comissões",
   cliques: "Cliques",
   resultados: "Resultados",
