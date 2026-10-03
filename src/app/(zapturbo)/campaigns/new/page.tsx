@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { CampaignWizard } from "@/components/campaign-wizard";
 import { requireOrg } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 
 export default async function NewCampaignPage() {
   const ctx = await requireOrg("campaigns.write");
@@ -19,7 +20,7 @@ export default async function NewCampaignPage() {
   if (!lists.length) blockers.push("Crie ou importe uma lista de contatos");
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <PageHeader
         kicker="Wizard · 8 etapas"
         title="Nova campanha"
@@ -38,19 +39,19 @@ export default async function NewCampaignPage() {
           </Link>
         </div>
       ) : (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-600">
-            Pré-requisitos OK ({phones.length} número(s), {templates.length} template(s), {lists.length}{" "}
-            lista(s)). O wizard completo de criação/envio entra na próxima iteração dos workers de
-            campanha.
-          </p>
-          <Link
-            href="/campaigns"
-            className="mt-4 inline-flex h-10 items-center rounded-xl bg-[#1fad6c] px-4 text-sm font-semibold text-white"
-          >
-            Voltar às campanhas
-          </Link>
-        </div>
+        <CampaignWizard
+          phones={phones.map((p) => ({
+            id: p.id,
+            label: p.displayPhoneNumber,
+            meta: p.verifiedName ?? undefined,
+          }))}
+          templates={templates.map((t) => ({
+            id: t.id,
+            label: t.name,
+            meta: `${t.category} · ${t.language}`,
+          }))}
+          lists={lists.map((l) => ({ id: l.id, label: l.name, meta: l.kind }))}
+        />
       )}
     </div>
   );
