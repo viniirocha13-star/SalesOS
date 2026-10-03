@@ -9,7 +9,7 @@ export async function authenticate(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const from = String(formData.get("from") ?? "/dashboard");
   const dest =
-    from.startsWith("/") && !from.startsWith("//") && from !== "/login" ? from : "/dashboard";
+    from.startsWith("/") && !from.startsWith("//") && from !== "/login" ? from : "/visao-geral";
   try {
     await signIn("credentials", { email, password, redirectTo: dest });
   } catch (error) {

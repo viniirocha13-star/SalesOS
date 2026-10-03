@@ -13,15 +13,17 @@ export default auth((request) => {
   }
   if (
     pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/whatsapp/webhook") ||
+    pathname.startsWith("/api/webhooks/meta") ||
     pathname.startsWith("/api/leads/capture") ||
     pathname.startsWith("/api/health") ||
     pathname.startsWith("/api/ready") ||
     pathname.startsWith("/_next")
   ) {
-    if (pathname.startsWith("/login") && request.auth?.user) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+    if ((pathname.startsWith("/login") || pathname.startsWith("/register")) && request.auth?.user) {
+      return NextResponse.redirect(new URL("/visao-geral", request.url));
     }
     return NextResponse.next();
   }
