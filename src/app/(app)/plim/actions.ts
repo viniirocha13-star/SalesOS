@@ -17,6 +17,7 @@ const generalSchema = z.object({
   workspaceName: z.string().min(2).max(120),
   timezone: z.string().min(2).max(64),
   testMode: z.coerce.boolean(),
+  duplicateWindowHours: z.coerce.number().int().min(1).max(168).optional(),
 });
 
 const brandSchema = z.object({
@@ -36,8 +37,16 @@ export async function savePlimGeneral(formData: FormData) {
     workspaceName: formData.get("workspaceName"),
     timezone: formData.get("timezone"),
     testMode: formData.get("testMode") === "on",
+    duplicateWindowHours: formData.get("duplicateWindowHours")
+      ? Number(formData.get("duplicateWindowHours"))
+      : undefined,
   });
-  await updateGeneralSettings(ctx.tenantId, parsed);
+  await updateGeneralSettings(ctx.tenantId, {
+    workspaceName: parsed.workspaceName,
+    timezone: parsed.timezone,
+    testMode: parsed.testMode,
+    ...(parsed.duplicateWindowHours != null ? { duplicateWindowHours: parsed.duplicateWindowHours } : {}),
+  });
   revalidatePath("/plim/configuracoes");
   revalidatePath("/plim");
 }

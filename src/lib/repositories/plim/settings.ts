@@ -12,7 +12,29 @@ export async function getWorkspaceSettings(tenantId: string) {
 
 export async function updateGeneralSettings(
   tenantId: string,
-  data: { workspaceName: string; timezone: string; testMode: boolean },
+  data: { workspaceName: string; timezone: string; testMode: boolean; duplicateWindowHours?: number },
+) {
+  return prisma.plimWorkspaceSettings.update({
+    where: { tenantId },
+    data,
+  });
+}
+
+export async function updateAffiliateConfig(tenantId: string, affiliateConfig: Record<string, string>) {
+  return prisma.plimWorkspaceSettings.update({
+    where: { tenantId },
+    data: { affiliateConfig },
+  });
+}
+
+export async function updateIntegrationSecrets(
+  tenantId: string,
+  data: {
+    telegramBotToken?: string | null;
+    metaAdsToken?: string | null;
+    openAiModel?: string | null;
+    trackingBaseUrl?: string | null;
+  },
 ) {
   return prisma.plimWorkspaceSettings.update({
     where: { tenantId },

@@ -10,7 +10,7 @@ export const shopeeAdapter: AffiliateAdapter = {
     return true;
   },
   async convert(input: AffiliateConvertInput): Promise<AffiliateConvertResult> {
-    const affiliateId = requireEnv("PLIM_SHOPEE_AFFILIATE_ID", "Shopee");
+    const affiliateId = requireEnv("PLIM_SHOPEE_AFFILIATE_ID", "Shopee", input.envOverrides);
     const sep = input.url.includes("?") ? "&" : "?";
     const affiliateUrl = `${input.url}${sep}utm_source=affiliate&utm_medium=${encodeURIComponent(affiliateId)}${
       input.subId ? `&sub_id=${encodeURIComponent(input.subId)}` : ""

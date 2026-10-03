@@ -3,8 +3,11 @@ import { getPlimWhatsAppProvider } from "@/lib/providers/plim-whatsapp";
 import { getTelegramProvider } from "@/lib/providers/telegram";
 import { getInstagramProvider } from "@/lib/providers/instagram";
 import type { PlimChannelPlatform } from "@prisma/client";
+import { notifyPlimAdmins } from "@/lib/plim/notify-admins";
+import { getTelegramBotToken } from "@/lib/plim/workspace-env";
 
 async function sendViaPlatform(
+  tenantId: string,
   platform: PlimChannelPlatform,
   externalId: string,
   message: string,
@@ -16,7 +19,8 @@ async function sendViaPlatform(
     return wa.sendMessage(externalId, message);
   }
   if (platform === "TELEGRAM") {
-    const tg = getTelegramProvider();
+    const tgToken = await getTelegramBotToken(tenantId);
+    const tg = getTelegramProvider(tgToken);
     return tg.sendMessage(externalId, message);
   }
   if (platform === "INSTAGRAM") {
@@ -95,13 +99,12 @@ export async function processPlimQueueBatch(limit = 25): Promise<{ processed: nu
         where: { id: item.id },
         data: { status: "FALHOU", lastError: gate.reason },
       });
-      await prisma.notification.create({
-        data: {
-          title: `PLIM: envios pausados (${platform})`,
-          body: gate.reason ?? "Conexão indisponível",
-          href: `/plim/${platform === "WHATSAPP" ? "whatsapp" : platform === "TELEGRAM" ? "telegram" : "instagram"}`,
-        },
-      });
+      await notifyPlimAdmins(
+        item.tenantId,
+        `PLIM: envios pausados (${platform})`,
+        gate.reason ?? "Conexão indisponível",
+        `/plim/${platform === "WHATSAPP" ? "whatsapp" : platform === "TELEGRAM" ? "telegram" : "instagram"}`,
+      );
       failed++;
       continue;
     }
@@ -129,7 +132,7 @@ export async function processPlimQueueBatch(limit = 25): Promise<{ processed: nu
           },
         });
       } else {
-        await sendViaPlatform(platform, externalId, message, item.imageUrl);
+        await sendViaPlatform(item.tenantId, platform, externalId, message, item.imageUrl);
         await prisma.plimQueueItem.update({
           where: { id: item.id },
           data: { status: "ENVIADO", testPayload: undefined },
@@ -150,6 +153,12 @@ export async function processPlimQueueBatch(limit = 25): Promise<{ processed: nu
         where: { id: gate.conn!.id },
         data: { errorCount: { increment: 1 }, lastError: msg, status: "ERROR", sendsPaused: true },
       });
+      await notifyPlimAdmins(
+        item.tenantId,
+        "PLIM: falha na fila de envio",
+        msg,
+        "/plim/filas",
+      );
       failed++;
     }
   }

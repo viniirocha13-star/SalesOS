@@ -10,7 +10,7 @@ export const sheinAdapter: AffiliateAdapter = {
     return true;
   },
   async convert(input: AffiliateConvertInput): Promise<AffiliateConvertResult> {
-    const affiliateId = requireEnv("PLIM_SHEIN_AFFILIATE_ID", "SHEIN");
+    const affiliateId = requireEnv("PLIM_SHEIN_AFFILIATE_ID", "SHEIN", input.envOverrides);
     const sep = input.url.includes("?") ? "&" : "?";
     const affiliateUrl = `${input.url}${sep}aff_id=${encodeURIComponent(affiliateId)}${
       input.subId ? `&sub_id=${encodeURIComponent(input.subId)}` : ""

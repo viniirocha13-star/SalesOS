@@ -53,8 +53,13 @@ export default async function PlimGruposPage() {
             <input name="activeTo" placeholder="Horário fim" className="rounded border px-2 py-1.5" />
             <input name="dailyLimit" type="number" placeholder="Limite diário" className="rounded border px-2 py-1.5" />
             <input name="minIntervalSec" type="number" placeholder="Intervalo mínimo (s)" className="rounded border px-2 py-1.5" />
+            <label className="flex items-center gap-2 text-sm md:col-span-2"><input type="checkbox" name="isMasterHub" /> Grupo mestre público (/grupos)</label>
+            <input name="publicSlug" placeholder="Slug público (ex: promos-fortaleza)" className="rounded border px-2 py-1.5" />
+            <input name="publicRedirectUrl" placeholder="URL de entrada (WhatsApp/Telegram)" className="rounded border px-2 py-1.5" />
+            <input name="memberLimit" type="number" placeholder="Limite de entradas públicas" className="rounded border px-2 py-1.5" />
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked /> Ativo</label>
           </div>
+          <p className="mt-2 text-xs text-slate-500">Hub público: /grupos e /grupos/[slug] — registra clique e redireciona.</p>
           <button type="submit" className="mt-3 rounded-lg bg-violet-600 px-4 py-2 text-sm text-white">Salvar</button>
         </form>
       )}

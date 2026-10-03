@@ -1055,6 +1055,10 @@ model PlimWorkspaceSettings {
   logoOpacity Float    @default(0.92)
   duplicateWindowHours Int @default(24)
   metaAdsToken String? @db.Text
+  affiliateConfig Json?
+  telegramBotToken String? @db.Text
+  openAiModel String?
+  trackingBaseUrl String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1076,6 +1080,10 @@ model PlimGroup {
   activeTo        String?
   dailyLimit      Int?
   minIntervalSec  Int?
+  publicSlug      String?             @unique
+  isMasterHub     Boolean             @default(false)
+  memberLimit     Int?
+  publicRedirectUrl String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 

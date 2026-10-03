@@ -22,6 +22,7 @@ export default auth((request) => {
     pathname.startsWith("/sw.js") ||
     pathname.startsWith("/api/ready") ||
     pathname.startsWith("/o/") ||
+    pathname.startsWith("/grupos") ||
     pathname.startsWith("/_next")
   ) {
     if (pathname.startsWith("/login") && request.auth?.user) {

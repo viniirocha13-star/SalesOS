@@ -10,7 +10,7 @@ export const aliexpressAdapter: AffiliateAdapter = {
     return true;
   },
   async convert(input: AffiliateConvertInput): Promise<AffiliateConvertResult> {
-    const tracking = requireEnv("PLIM_ALIEXPRESS_TRACKING_ID", "AliExpress");
+    const tracking = requireEnv("PLIM_ALIEXPRESS_TRACKING_ID", "AliExpress", input.envOverrides);
     const sep = input.url.includes("?") ? "&" : "?";
     const affiliateUrl = `${input.url}${sep}aff_platform=api&aff_trace_key=${encodeURIComponent(tracking)}${
       input.subId ? `&sub_id=${encodeURIComponent(input.subId)}` : ""

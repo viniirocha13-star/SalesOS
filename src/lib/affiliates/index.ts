@@ -1,5 +1,5 @@
 import type { PlimMarketplace } from "@prisma/client";
-import type { AffiliateAdapter } from "@/lib/affiliates/types";
+import type { AffiliateAdapter, AffiliateConvertInput } from "@/lib/affiliates/types";
 import { shopeeAdapter } from "@/lib/affiliates/shopee";
 import { mercadolivreAdapter } from "@/lib/affiliates/mercadolivre";
 import { amazonAdapter } from "@/lib/affiliates/amazon";
@@ -27,11 +27,7 @@ export function getAdapterForUrl(url: string): AffiliateAdapter | null {
   return affiliateAdapters.find((a) => a.detect(url)) ?? null;
 }
 
-export async function convertAffiliateUrl(input: {
-  url: string;
-  subId?: string;
-  campaign?: string;
-}) {
+export async function convertAffiliateUrl(input: AffiliateConvertInput) {
   const adapter = getAdapterForUrl(input.url);
   if (!adapter) throw new Error("Marketplace não reconhecido para este link.");
   return adapter.convert(input);

@@ -4,6 +4,7 @@ export type AffiliateConvertInput = {
   url: string;
   subId?: string;
   campaign?: string;
+  envOverrides?: Record<string, string>;
 };
 
 export type AffiliateConvertResult = {

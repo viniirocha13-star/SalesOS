@@ -10,7 +10,7 @@ export const amazonAdapter: AffiliateAdapter = {
     return true;
   },
   async convert(input: AffiliateConvertInput): Promise<AffiliateConvertResult> {
-    const tag = requireEnv("PLIM_AMAZON_TAG", "Amazon");
+    const tag = requireEnv("PLIM_AMAZON_TAG", "Amazon", input.envOverrides);
     const sep = input.url.includes("?") ? "&" : "?";
     let affiliateUrl = `${input.url}${sep}tag=${encodeURIComponent(tag)}`;
     if (input.subId) {

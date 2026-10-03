@@ -53,8 +53,8 @@ export class NoopTelegramProvider implements TelegramProvider {
   }
 }
 
-export function getTelegramProvider() {
-  const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
+export function getTelegramProvider(tokenOverride?: string) {
+  const token = tokenOverride?.trim() || process.env.TELEGRAM_BOT_TOKEN?.trim();
   if (token) return new TelegramBotProvider(token);
   return new NoopTelegramProvider();
 }

@@ -30,6 +30,8 @@ import { prisma } from "@/lib/prisma";
 import Papa from "papaparse";
 import { getPlimWhatsAppProvider } from "@/lib/providers/plim-whatsapp";
 import { getTelegramProvider } from "@/lib/providers/telegram";
+import { getAffiliateEnvOverrides, getTelegramBotToken } from "@/lib/plim/workspace-env";
+import { notifyPlimAdmins } from "@/lib/plim/notify-admins";
 import { getInstagramProvider } from "@/lib/providers/instagram";
 
 async function requireWrite() {
@@ -127,7 +129,8 @@ export async function testAffiliateConversion(url: string, groupId?: string) {
     subId = group?.externalId ?? undefined;
   }
   try {
-    const result = await convertAffiliateUrl({ url, subId });
+    const envOverrides = await getAffiliateEnvOverrides(ctx.tenantId);
+    const result = await convertAffiliateUrl({ url, subId, envOverrides });
     return { ok: true as const, ...result };
   } catch (e) {
     const msg = e instanceof AffiliateNotConfiguredError ? e.message : e instanceof Error ? e.message : String(e);
@@ -152,6 +155,10 @@ export async function saveGroupForm(formData: FormData) {
     dailyLimit: formData.get("dailyLimit") ? Number(formData.get("dailyLimit")) : undefined,
     minIntervalSec: formData.get("minIntervalSec") ? Number(formData.get("minIntervalSec")) : undefined,
     active: formData.get("active") === "on",
+    publicSlug: formData.get("publicSlug")?.toString()?.trim() || null,
+    isMasterHub: formData.get("isMasterHub") === "on",
+    memberLimit: formData.get("memberLimit") ? Number(formData.get("memberLimit")) : null,
+    publicRedirectUrl: formData.get("publicRedirectUrl")?.toString()?.trim() || null,
   };
   if (id) await updateGroup(ctx.tenantId, id, data);
   else await createGroup(ctx.tenantId, data);
@@ -382,7 +389,8 @@ export async function testChannelConnection(platform: "WHATSAPP" | "TELEGRAM" | 
     ok = s.connected;
     error = s.error;
   } else if (platform === "TELEGRAM") {
-    const s = await getTelegramProvider().getStatus();
+    const tgToken = await getTelegramBotToken(ctx.tenantId);
+    const s = await getTelegramProvider(tgToken).getStatus();
     ok = s.ok;
     error = s.error;
   } else {
@@ -418,5 +426,13 @@ export async function testChannelConnection(platform: "WHATSAPP" | "TELEGRAM" | 
     });
   }
   revalidatePath(`/plim/${platform.toLowerCase()}`);
+  if (!ok) {
+    await notifyPlimAdmins(
+      ctx.tenantId,
+      `PLIM: falha na integração ${platform}`,
+      error ?? "Teste de conexão falhou",
+      `/plim/configuracoes?tab=${platform === "WHATSAPP" ? "WhatsApp" : platform === "TELEGRAM" ? "Telegram" : "Instagram"}`,
+    );
+  }
   return { ok, error };
 }

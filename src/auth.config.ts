@@ -52,7 +52,9 @@ export const authConfig = {
         pathname.startsWith("/api/cron/queue") ||
         pathname.startsWith("/manifest.webmanifest") ||
         pathname.startsWith("/sw.js") ||
-        pathname.startsWith("/api/ready")
+        pathname.startsWith("/api/ready") ||
+        pathname.startsWith("/o/") ||
+        pathname.startsWith("/grupos")
       ) {
         return true;
       }

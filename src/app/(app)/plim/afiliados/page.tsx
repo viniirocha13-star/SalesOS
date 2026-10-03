@@ -4,6 +4,7 @@ import type { Role } from "@prisma/client";
 import { getPlimContext } from "@/lib/plim/tenant-context";
 import { affiliateAdapters } from "@/lib/affiliates";
 import { listGroups } from "@/lib/repositories/plim/groups";
+import { getAffiliateEnvOverrides, resolveAffiliateEnv } from "@/lib/plim/workspace-env";
 import { PlimSection, plimCardClass } from "@/components/plim/plim-section";
 import { ConversorTestForm } from "@/components/plim/conversor-test-form";
 
@@ -22,13 +23,14 @@ export default async function PlimAfiliadosPage() {
   if (!session?.user) redirect("/login");
   const ctx = await getPlimContext(session.user.id, session.user.role as Role);
   const groups = await listGroups(ctx.tenantId);
+  const overrides = await getAffiliateEnvOverrides(ctx.tenantId);
 
   return (
     <PlimSection title="Afiliados" description="Status por marketplace e teste de conversão.">
       <div className="grid gap-3 md:grid-cols-2">
         {affiliateAdapters.map((a) => {
           const env = ENV_HINT[a.marketplace];
-          const configured = env ? Boolean(process.env[env]?.trim()) : false;
+          const configured = env ? Boolean(resolveAffiliateEnv(env, overrides)) : false;
           return (
             <div key={a.marketplace} className={plimCardClass()}>
               <div className="flex items-center justify-between">

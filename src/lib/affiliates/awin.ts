@@ -10,7 +10,7 @@ export const awinAdapter: AffiliateAdapter = {
     return true;
   },
   async convert(input: AffiliateConvertInput): Promise<AffiliateConvertResult> {
-    const publisher = requireEnv("PLIM_AWIN_PUBLISHER_ID", "Awin");
+    const publisher = requireEnv("PLIM_AWIN_PUBLISHER_ID", "Awin", input.envOverrides);
     const sep = input.url.includes("?") ? "&" : "?";
     const affiliateUrl = `${input.url}${sep}awinmid=${encodeURIComponent(publisher)}${
       input.subId ? `&clickref=${encodeURIComponent(input.subId)}` : ""
