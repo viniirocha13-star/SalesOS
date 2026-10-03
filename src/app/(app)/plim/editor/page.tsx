@@ -10,6 +10,9 @@ import { PlimSection, plimCardClass } from "@/components/plim/plim-section";
 import { formatBrPrice, renderMessageTemplate } from "@/lib/plim/template-render";
 import { saveEditorOffer, saveMessageTemplate } from "@/app/(app)/plim/operacao-actions";
 import { EditorWorkflow } from "@/components/plim/editor-workflow";
+import { OfferStoryPreview } from "@/components/plim/offer-story-preview";
+import { ensurePlimSettings } from "@/lib/plim/tenant-context";
+import { getStorageProvider } from "@/lib/storage";
 
 export default async function PlimEditorPage({
   searchParams,
@@ -22,10 +25,11 @@ export default async function PlimEditorPage({
   const sp = await searchParams;
   const offers = await listOffers(ctx.tenantId);
   const offer = sp.offer ? await getOffer(ctx.tenantId, sp.offer) : offers[0];
-  const [groups, template, templates] = await Promise.all([
+  const [groups, template, templates, plimBrand] = await Promise.all([
     listGroups(ctx.tenantId),
     ensureDefaultTemplate(ctx.tenantId),
     listTemplates(ctx.tenantId),
+    ensurePlimSettings(ctx.tenantId),
   ]);
   const canWrite = canPlimWrite(ctx.profile);
 
@@ -82,6 +86,20 @@ export default async function PlimEditorPage({
         <div className={plimCardClass()}>
           <h2 className="font-medium">Ações</h2>
           {canWrite && <EditorWorkflow offerId={offer.id} groups={groups.filter((g) => g.groupRole === "DESTINO").map((g) => ({ id: g.id, name: g.name }))} />}
+        </div>
+        <div className={plimCardClass()}>
+          <OfferStoryPreview
+            productName={offer.productName}
+            imageUrl={offer.imageUrl}
+            promoText={previewMessage}
+            brand={{
+              logoPath: plimBrand.logoPath ? getStorageProvider().getPublicUrl(plimBrand.logoPath) : null,
+              logoMargin: plimBrand.logoMargin,
+              logoSize: plimBrand.logoSize,
+              logoOpacity: plimBrand.logoOpacity,
+              brandColor: plimBrand.brandColor,
+            }}
+          />
         </div>
       </div>
       {canWrite && (

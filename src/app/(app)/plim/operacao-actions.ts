@@ -26,6 +26,7 @@ import { convertAffiliateUrl } from "@/lib/affiliates";
 import { AffiliateNotConfiguredError } from "@/lib/affiliates/errors";
 import { formatBrPrice, renderMessageTemplate } from "@/lib/plim/template-render";
 import { processPlimQueueBatch } from "@/lib/plim/queue-processor";
+import { runAutopilotAgainstCapturedOffers } from "@/lib/plim/autopilot-run";
 import { prisma } from "@/lib/prisma";
 import Papa from "papaparse";
 import { getPlimWhatsAppProvider } from "@/lib/providers/plim-whatsapp";
@@ -223,10 +224,12 @@ export async function saveAutopilotForm(formData: FormData) {
     marketplace: (formData.get("marketplace")?.toString() || null) as PlimMarketplace | null,
     searchQuery: formData.get("searchQuery")?.toString(),
     minDiscount: formData.get("minDiscount") ? Number(formData.get("minDiscount")) : null,
+    minPrice: formData.get("minPrice") ? Number(formData.get("minPrice")) : null,
+    maxPrice: formData.get("maxPrice") ? Number(formData.get("maxPrice")) : null,
     dailyQuantity: formData.get("dailyQuantity") ? Number(formData.get("dailyQuantity")) : null,
     activeFrom: formData.get("activeFrom")?.toString(),
     activeTo: formData.get("activeTo")?.toString(),
-    destinationGroupIds: splitList(formData.get("destinationGroupIds")?.toString()),
+    destinationGroupIds: formData.getAll("destinationGroupIds").map(String).filter(Boolean),
     templateId: formData.get("templateId")?.toString(),
     sourceKey: formData.get("sourceKey")?.toString(),
     status: formData.get("status")?.toString() as import("@prisma/client").PlimAutopilotStatus,
@@ -248,11 +251,10 @@ export async function removeAutopilotForm(formData: FormData) {
 
 export async function runAutopilotSearch(id: string) {
   const ctx = await requireWrite();
-  const pilot = await prisma.plimAutopilot.findFirst({ where: { id, tenantId: ctx.tenantId } });
-  if (!pilot?.sourceKey?.trim()) {
-    return { ok: false, error: "Fonte de busca automática não configurada." };
-  }
-  return { ok: false, error: "Fonte configurada, mas integração de busca ainda não disponível." };
+  const result = await runAutopilotAgainstCapturedOffers(ctx.tenantId, id);
+  revalidatePath("/plim/piloto");
+  revalidatePath("/plim/filas");
+  return result;
 }
 
 export async function queueActionForm(formData: FormData) {

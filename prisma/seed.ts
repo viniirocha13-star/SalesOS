@@ -693,8 +693,11 @@ async function main() {
   await prisma.plimAutopilot.create({
     data: {
       tenantId: tenant.id,
-      name: "Piloto Shopee Eletrônicos",
+      name: "Piloto Shopee DEMO",
       marketplace: "SHOPEE",
+      searchQuery: "Produto",
+      destinationGroupIds: [groups[0].id, groups[1].id],
+      dailyQuantity: 3,
       status: "ATIVO",
       isDemo: true,
     },
