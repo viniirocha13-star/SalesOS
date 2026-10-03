@@ -7,6 +7,8 @@ import { getRedis } from "@/workers/queue";
 import { isWorkerHeartbeatFresh } from "@/workers/heartbeat";
 import { WORKER_HEARTBEAT_KEY } from "@/lib/app-url";
 import { cn } from "@/lib/utils";
+import { ExternalHelp } from "@/components/external-help";
+import { DIAGNOSTIC_HELP, helpLinks } from "@/wa/help-links";
 
 export default async function DiagnosticsPage() {
   const ctx = await requireOrg("diagnostics.view");
@@ -49,9 +51,17 @@ export default async function DiagnosticsPage() {
       <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {checks.map((c) => (
           <li key={c.id} className="flex items-start justify-between gap-3 px-5 py-3.5 text-sm">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="font-medium">{c.id.replaceAll("_", " ")}</p>
               <p className="text-slate-500">{c.detail}</p>
+              {!c.ok && DIAGNOSTIC_HELP[c.id] && (
+                <ExternalHelp
+                  className="mt-2"
+                  compact
+                  title="Como resolver"
+                  links={helpLinks(DIAGNOSTIC_HELP[c.id])}
+                />
+              )}
             </div>
             <span
               className={cn(
@@ -67,6 +77,11 @@ export default async function DiagnosticsPage() {
       <Link href="/conectar" className="text-sm font-medium text-[#148a52] hover:underline">
         Ir para conexão Meta
       </Link>
+      <ExternalHelp
+        title="Referências oficiais"
+        intro="Infraestrutura e observabilidade ficam fora do painel do cliente. Para quem opera a plataforma:"
+        links={helpLinks(["webhooks", "errorCodes", "railway", "sentry", "n8n"])}
+      />
     </div>
   );
 }

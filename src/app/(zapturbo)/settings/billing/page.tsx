@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/page-header";
 import { PricingRateForm } from "@/components/pricing-rate-form";
 import { requireOrg } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
+import { ExternalHelp } from "@/components/external-help";
+import { helpLinks } from "@/wa/help-links";
 
 export default async function BillingSettingsPage() {
   const ctx = await requireOrg("billing.view");
@@ -46,6 +48,13 @@ export default async function BillingSettingsPage() {
         >
           Fazer upgrade
         </Link>
+        <ExternalHelp
+          className="mt-4"
+          compact
+          title="Cobrança online ainda não ativada nesta instalação"
+          intro="A mudança de plano é registrada no painel; a cobrança automática depende de integrar um provedor de pagamento:"
+          links={helpLinks(["stripe", "mercadoPago"])}
+        />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {plans.map((p) => (
@@ -67,6 +76,13 @@ export default async function BillingSettingsPage() {
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="mb-3 text-[15px] font-semibold">Tarifas Meta configuradas</h2>
+        <ExternalHelp
+          className="mb-3"
+          compact
+          title="Os valores vêm da Meta, não do sistema"
+          intro="A cobrança varia por mercado, categoria e volume e muda ao longo do tempo. Consulte a fonte oficial e cadastre a tarifa vigente aqui — o painel usa isso só como estimativa:"
+          links={helpLinks(["pricingDocs", "pricingSite", "paymentMethod"])}
+        />
         {rates.length === 0 ? (
           <p className="text-sm text-slate-400">Nenhuma tarifa. Cadastre para estimar custos de campanha.</p>
         ) : (

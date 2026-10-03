@@ -217,6 +217,10 @@ TEST_MODE_ALLOWED_NUMBERS   lista E.164 separada por vírgula
 
 ## 10. Dependências externas
 
+Tudo que exige ação fora do painel aparece na interface com o link oficial correspondente
+(`src/wa/help-links.ts` + componente `ExternalHelp`). A tabela completa está em
+`docs/PASSO-A-PASSO-CLIENTE.md`, seção "O que depende de você".
+
 - Meta App com produto WhatsApp e Embedded Signup configurado (Tech Provider).
 - Cada organização autoriza o app na sua própria conta — nenhum token da dona do SaaS é
   compartilhado entre clientes.

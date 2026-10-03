@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
+import { ExternalHelp } from "@/components/external-help";
+import { helpLinks } from "@/wa/help-links";
 
 type Preview = {
   totalRows: number;
@@ -96,6 +98,11 @@ export default function ContactsImportPage() {
             importo membros extraídos de grupos de terceiros sem permissão.
           </span>
         </label>
+        <ExternalHelp
+          compact
+          title="O que conta como autorização"
+          links={helpLinks(["optIn", "businessPolicy", "lgpdLaw"])}
+        />
         <div className="flex flex-wrap gap-2">
           <button
             type="button"

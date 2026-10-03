@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CircleCheck, AlertTriangle, RefreshCw, Unplug, Stethoscope } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ExternalHelp } from "@/components/external-help";
+import { helpLinks } from "@/wa/help-links";
 
 type Props = {
   canManage: boolean;
@@ -233,6 +235,32 @@ export function MetaConnectPanel({ canManage, connection, wabas, phones, embedde
             {error}
           </p>
         )}
+        {!embeddedSignup.configured && (
+          <ExternalHelp
+            className="mt-4"
+            title="Embedded Signup ainda não configurado nesta instalação"
+            intro="O botão “Conectar Meta” depende de um app Meta com Embedded Signup. Quem administra a plataforma obtém META_APP_ID, META_APP_SECRET e META_CONFIG_ID nestes lugares:"
+            links={helpLinks(["metaApps", "embeddedSignup", "techProvider", "cloudApiGetStarted"])}
+          />
+        )}
+        {!connected && embeddedSignup.configured && (
+          <ExternalHelp
+            className="mt-4"
+            compact
+            title="Antes de conectar"
+            intro="Tenha a empresa verificada no Business Manager e uma forma de pagamento cadastrada na Meta:"
+            links={helpLinks(["businessVerification", "paymentMethod", "businessPolicy"])}
+          />
+        )}
+        {connection.status === "TOKEN_EXPIRED" && (
+          <ExternalHelp
+            className="mt-4"
+            compact
+            title="Token expirado"
+            intro="Reconecte pelo botão acima. Se usar conexão manual, gere um novo token de usuário do sistema:"
+            links={helpLinks(["systemUserToken"])}
+          />
+        )}
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -361,6 +389,11 @@ export function MetaConnectPanel({ canManage, connection, wabas, phones, embedde
                 Registrar
               </button>
             </div>
+            <ExternalHelp
+              compact
+              title="Se o código não chegar ou o registro falhar"
+              links={helpLinks(["phoneVerification", "phoneRegistration", "messagingLimits"])}
+            />
           </div>
         )}
       </div>
@@ -401,6 +434,12 @@ export function MetaConnectPanel({ canManage, connection, wabas, phones, embedde
               Salvar token criptografado e sincronizar
             </button>
           </div>
+          <ExternalHelp
+            className="mt-3"
+            compact
+            title="Como gerar o token e localizar a WABA"
+            links={helpLinks(["systemUserToken", "businessManager", "webhooks"])}
+          />
         </div>
       )}
     </div>

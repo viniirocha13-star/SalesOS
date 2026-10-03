@@ -235,3 +235,33 @@ Entrar → conectar Meta → selecionar empresa → conectar WhatsApp
 ```
 
 Esse é o mesmo critério de “pronto” comercial do produto.
+
+---
+
+## O que depende de você (fora do painel) e onde conseguir
+
+O painel mostra estes mesmos links no ponto exato em que cada etapa é necessária
+(conexão Meta, diagnóstico, cobrança, templates e importação). Fonte: `src/wa/help-links.ts`.
+
+| Etapa | Quem faz | Link oficial |
+|---|---|---|
+| Criar o app Meta (`META_APP_ID`, `META_APP_SECRET`) | Dono da plataforma | https://developers.facebook.com/apps/ |
+| Configurar Embedded Signup (`META_CONFIG_ID`) | Dono da plataforma | https://developers.facebook.com/docs/whatsapp/embedded-signup |
+| Virar Tech Provider (administrar ativos de clientes) | Dono da plataforma | https://developers.facebook.com/docs/whatsapp/solution-providers |
+| Primeiros passos na Cloud API | Dono da plataforma | https://developers.facebook.com/docs/whatsapp/cloud-api/get-started |
+| Configurar webhook HTTPS → `/api/webhooks/meta` | Dono da plataforma | https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks |
+| Verificar a empresa no Business Manager | Cliente | https://www.facebook.com/business/help/2058515294227817 |
+| Business Manager | Cliente | https://business.facebook.com/ |
+| Cadastrar forma de pagamento na Meta | Cliente | https://www.facebook.com/business/help/488291839463771 |
+| Token de usuário do sistema (só na conexão manual) | Cliente | https://developers.facebook.com/docs/whatsapp/business-management-api/get-started |
+| Registrar número (PIN) | Painel (guiado) | https://developers.facebook.com/docs/whatsapp/cloud-api/reference/registration |
+| Verificar número (código SMS/voz) | Painel (guiado) | https://developers.facebook.com/docs/whatsapp/cloud-api/reference/phone-numbers |
+| Templates e aprovação | Painel + Meta | https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates |
+| Categorias Marketing / Utilidade / Autenticação | Cliente | https://developers.facebook.com/docs/whatsapp/updates-to-pricing/new-template-guidelines |
+| Preços por mercado e categoria (cadastrar em Cobrança) | Cliente | https://developers.facebook.com/docs/whatsapp/pricing · https://business.whatsapp.com/products/platform-pricing |
+| Limites de envio e qualidade do número | Cliente | https://developers.facebook.com/docs/whatsapp/messaging-limits |
+| Códigos de erro da Meta | Suporte | https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes |
+| Opt-in (consentimento) e política comercial | Cliente | https://developers.facebook.com/docs/whatsapp/overview/getting-opt-in · https://business.whatsapp.com/policy |
+| LGPD | Cliente | https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm · https://www.gov.br/anpd/pt-br |
+| Cobrança online do SaaS (Fase 2) | Dono da plataforma | https://docs.stripe.com/ · https://www.mercadopago.com.br/developers |
+| Deploy, erros e automações opcionais | Dono da plataforma | https://docs.railway.com/ · https://docs.sentry.io/platforms/javascript/guides/nextjs/ · https://docs.n8n.io/ |
