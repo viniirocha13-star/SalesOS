@@ -4,6 +4,29 @@ CRM operacional multi-tenant (primeiro uso: telecom). A IA conversa; o backend �
 
 Documentação em `docs/`: ARCHITECTURE, DATABASE, WHATSAPP, AI, LUNA, SECURITY, DEPLOYMENT, ENVIRONMENT, RUNBOOK.
 
+## PLIM AUTOMAÇÃO (PLIM PROMOS)
+
+Automação de afiliados (ofertas, rotas, filas, tracking `/o/[code]`, comissões, cliques, contatos) sobre este Sales OS. Especificação: `docs/PLIM-ESPECIFICACAO.md`.
+
+**Subir localmente**
+
+```bash
+cp .env.example .env
+# Postgres (docker compose ou serviço local) + Redis para worker/filas
+npx prisma migrate deploy
+npx prisma db seed
+npm run dev:web
+# Login seed: ursula.b@example.com / Brisa@2026 → /plim
+```
+
+**Variáveis PLIM** (`.env.example`): afiliados (`PLIM_*_TAG` / IDs), `PLIM_WEBHOOK_SECRET` (webhook de ofertas), `CRON_SECRET` (cron `/api/cron/queue`), `TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`, `META_ADS_TOKEN`, storage (`PLIM_STORAGE_*`, `SUPABASE_*`). MODO TESTE vem ligado no seed — envios reais ficam bloqueados até desligar em Configurações.
+
+**Deploy**: `vercel.json` agenda o cron da fila; Railway mantém `releaseCommand` com `prisma migrate deploy` e worker separado (`npm run worker`).
+
+Integração completa: PR draft contra `main` no branch `cursor/plim-integracao` (partes anteriores: PRs #3 fundação, #4 operação, #5 analytics).
+
+Rotas PLIM em `/plim/*`; book comercial Sales OS continua em `/ofertas`.
+
 ## Porta e URL reais
 
 A porta de desenvolvimento é **uma só**, via `APP_PORT` (veja `.env.example`):

@@ -44,6 +44,23 @@ async function main() {
   await prisma.domainEvent.deleteMany();
   await prisma.promptVersion.deleteMany();
   await prisma.prompt.deleteMany();
+  await prisma.plimSchedule.deleteMany();
+  await prisma.plimShortLink.deleteMany();
+  await prisma.plimMessageTemplate.deleteMany();
+  await prisma.plimBlockedWord.deleteMany();
+  await prisma.plimClickEvent.deleteMany();
+  await prisma.plimCommissionEvent.deleteMany();
+  await prisma.plimContact.deleteMany();
+  await prisma.plimExclusion.deleteMany();
+  await prisma.plimErrorLog.deleteMany();
+  await prisma.plimCampaignMap.deleteMany();
+  await prisma.plimQueueItem.deleteMany();
+  await prisma.plimOffer.deleteMany();
+  await prisma.plimRoute.deleteMany();
+  await prisma.plimAutopilot.deleteMany();
+  await prisma.plimGroup.deleteMany();
+  await prisma.plimChannelConnection.deleteMany();
+  await prisma.plimWorkspaceSettings.deleteMany();
 
   const tenant = await prisma.tenant.upsert({
     where: { slug: "default" },
@@ -54,8 +71,15 @@ async function main() {
   const hash = await bcrypt.hash(password, 10);
   const admin = await prisma.user.upsert({
     where: { email: "ursula.b@example.com" },
-    update: {},
-    create: { name: "Admin Brisa", email: "ursula.b@example.com", passwordHash: hash, role: "ADMIN" },
+    update: { tenantId: tenant.id, plimProfile: "ADMIN" },
+    create: {
+      name: "Admin Brisa",
+      email: "ursula.b@example.com",
+      passwordHash: hash,
+      role: "ADMIN",
+      tenantId: tenant.id,
+      plimProfile: "ADMIN",
+    },
   });
   await prisma.user.upsert({
     where: { email: "rachel.c@example.org" },
@@ -580,7 +604,158 @@ async function main() {
     console.warn("Book Fortaleza não carregado no seed:", error);
   }
 
-  console.log("Seed ok. Logins: ursula.b@example.com / Brisa@2026");
+  const blockedSeed = ["usado", "recondicionado", "seminovo", "réplica"];
+  for (const word of blockedSeed) {
+    await prisma.plimBlockedWord.upsert({
+      where: { tenantId_word: { tenantId: tenant.id, word } },
+      update: {},
+      create: { tenantId: tenant.id, word },
+    });
+  }
+
+  await prisma.plimMessageTemplate.upsert({
+    where: { id: "seed-plim-template" },
+    update: {},
+    create: {
+      id: "seed-plim-template",
+      tenantId: tenant.id,
+      name: "Padrão",
+      body: "{{produto}}\n\nDe {{preco_anterior}} por {{preco}}\n{{cupom}}\n{{link}}",
+      isDefault: true,
+    },
+  });
+
+  const plimSettings = await prisma.plimWorkspaceSettings.upsert({
+    where: { tenantId: tenant.id },
+    update: {},
+    create: {
+      tenantId: tenant.id,
+      workspaceName: "PLIM DEMO",
+      testMode: true,
+      brandName: "PLIM PROMOS",
+      brandColor: "#7C3AED",
+    },
+  });
+
+  const groups = await Promise.all(
+    ["Fitness Promo", "Tech Deals", "Casa & Decor"].map((name, i) =>
+      prisma.plimGroup.create({
+        data: {
+          tenantId: tenant.id,
+          name,
+          platform: i === 0 ? "WHATSAPP" : i === 1 ? "TELEGRAM" : "INSTAGRAM",
+          groupRole: "DESTINO",
+          externalId: `plim_demo_${i + 1}`,
+          niche: name,
+          memberCount: 1200 + i * 300,
+          active: true,
+        },
+      }),
+    ),
+  );
+
+  await prisma.plimChannelConnection.createMany({
+    data: [
+      { tenantId: tenant.id, platform: "WHATSAPP", label: "Conta principal", status: "CONNECTED", sendCount: 42 },
+      { tenantId: tenant.id, platform: "TELEGRAM", label: "Bot PLIM", status: "DISCONNECTED" },
+      { tenantId: tenant.id, platform: "INSTAGRAM", label: "Perfil promos", status: "DISCONNECTED" },
+    ],
+  });
+
+  const offers = await Promise.all(
+    Array.from({ length: 10 }).map((_, i) =>
+      prisma.plimOffer.create({
+        data: {
+          tenantId: tenant.id,
+          productName: `Produto DEMO ${i + 1}`,
+          description: "Oferta fictícia para dashboard PLIM.",
+          marketplace: ["SHOPEE", "MERCADO_LIVRE", "AMAZON", "MAGALU"][i % 4] as "SHOPEE",
+          originalPrice: 199.9 + i * 10,
+          currentPrice: 99.9 + i * 5,
+          discountPercent: 40 + i,
+          status: i < 3 ? "PUBLICADA" : i < 6 ? "NOVA" : "EM_ANALISE",
+          capturedAt: new Date(Date.now() - i * 3600_000),
+          publishedAt: i < 3 ? new Date() : null,
+          source: i % 2 === 0 ? "WhatsApp" : "Telegram",
+          isDemo: true,
+        },
+      }),
+    ),
+  );
+
+  await prisma.plimRoute.createMany({
+    data: [
+      { tenantId: tenant.id, name: "Rota Shopee → Fitness", status: "ATIVA", isDemo: true },
+      { tenantId: tenant.id, name: "Rota ML → Tech", status: "ATIVA", isDemo: true },
+    ],
+  });
+
+  await prisma.plimAutopilot.create({
+    data: {
+      tenantId: tenant.id,
+      name: "Piloto Shopee DEMO",
+      marketplace: "SHOPEE",
+      searchQuery: "Produto",
+      destinationGroupIds: [groups[0].id, groups[1].id],
+      dailyQuantity: 3,
+      status: "ATIVO",
+      isDemo: true,
+    },
+  });
+
+  await prisma.plimQueueItem.create({
+    data: {
+      tenantId: tenant.id,
+      productName: "Fila DEMO — Fone Bluetooth",
+      destination: groups[0].name,
+      status: "AGUARDANDO",
+      position: 1,
+    },
+  });
+
+  await prisma.plimClickEvent.createMany({
+    data: Array.from({ length: 20 }).map((_, i) => ({
+      tenantId: tenant.id,
+      offerId: offers[i % offers.length].id,
+      groupId: groups[i % groups.length].id,
+      marketplace: offers[i % offers.length].marketplace,
+      campaign: "demo-campanha",
+      destination: offers[i % offers.length].shortLink ?? offers[i % offers.length].affiliateLink,
+      utmSource: "whatsapp",
+      utmMedium: "grupo",
+      utmCampaign: "demo-campanha",
+      clickedAt: new Date(Date.now() - i * 1800_000),
+      isDemo: true,
+    })),
+  });
+
+  await prisma.plimCampaignMap.create({
+    data: {
+      tenantId: tenant.id,
+      name: "demo-campanha",
+      groupId: groups[0].id,
+      linkUrl: offers[0].shortLink ?? offers[0].affiliateLink,
+      investment: 50,
+    },
+  });
+
+  const mkts = ["SHOPEE", "MERCADO_LIVRE", "AMAZON", "MAGALU", "ALIEXPRESS", "SHEIN", "AWIN"] as const;
+  await prisma.plimCommissionEvent.createMany({
+    data: mkts.flatMap((marketplace, idx) =>
+      [0, 1, 2].map((j) => ({
+        tenantId: tenant.id,
+        marketplace,
+        productName: `Pedido DEMO ${marketplace}-${j}`,
+        amount: 150 + idx * 20 + j * 5,
+        commission: 12.5 + idx + j,
+        occurredAt: new Date(Date.now() - (idx * 3 + j) * 86_400_000),
+        isDemo: true,
+      })),
+    ),
+  });
+
+  console.log(`PLIM DEMO: workspace ${plimSettings.workspaceName}, ${offers.length} ofertas, 3 grupos.`);
+  console.log("Seed ok. Logins: ursula.b@example.com / Brisa@2026 — após login: /plim");
 }
 
 main()
