@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CircleCheck, AlertTriangle, RefreshCw, Unplug, Stethoscope } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,22 @@ const STATUS_PT: Record<string, string> = {
   ERROR: "Erro",
 };
 
+declare global {
+  interface Window {
+    FB?: {
+      init: (opts: Record<string, unknown>) => void;
+      login: (
+        cb: (response: {
+          authResponse?: { code?: string; accessToken?: string };
+          status?: string;
+        }) => void,
+        opts: Record<string, unknown>,
+      ) => void;
+    };
+    fbAsyncInit?: () => void;
+  }
+}
+
 export function MetaConnectPanel({ canManage, connection, wabas, phones, embeddedSignup }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -46,7 +62,33 @@ export function MetaConnectPanel({ canManage, connection, wabas, phones, embedde
   const [error, setError] = useState("");
   const [manualToken, setManualToken] = useState("");
   const [manualWaba, setManualWaba] = useState("");
+  const [sdkReady, setSdkReady] = useState(false);
+  const [pin, setPin] = useState("");
+  const [verifyCode, setVerifyCode] = useState("");
+  const [selectedPhone, setSelectedPhone] = useState(phones[0]?.id ?? "");
   const connected = connection.status === "CONNECTED";
+
+  useEffect(() => {
+    if (!embeddedSignup.configured || !embeddedSignup.appId) return;
+    window.fbAsyncInit = () => {
+      window.FB?.init({
+        appId: embeddedSignup.appId,
+        autoLogAppEvents: true,
+        xfbml: true,
+        version: "v21.0",
+      });
+      setSdkReady(true);
+    };
+    if (document.getElementById("facebook-jssdk")) {
+      setSdkReady(Boolean(window.FB));
+      return;
+    }
+    const script = document.createElement("script");
+    script.id = "facebook-jssdk";
+    script.src = "https://connect.facebook.net/pt_BR/sdk.js";
+    script.async = true;
+    document.body.appendChild(script);
+  }, [embeddedSignup.appId, embeddedSignup.configured]);
 
   async function call(path: string, body?: unknown, label = "acao") {
     setBusy(label);
@@ -75,13 +117,36 @@ export function MetaConnectPanel({ canManage, connection, wabas, phones, embedde
   function startEmbeddedSignup() {
     if (!embeddedSignup.configured) {
       setError(
-        "Embedded Signup ainda não configurado neste ambiente (META_APP_ID / META_CONFIG_ID). Use conexão manual ou peça ao administrador da plataforma.",
+        "Embedded Signup ainda não configurado (META_APP_ID / META_CONFIG_ID). Use conexão manual ou peça ao administrador da plataforma.",
       );
       return;
     }
-    // FB.login será ligado quando o SDK estiver carregado; por enquanto orientamos o fluxo.
-    setMessage(
-      "Abra o Embedded Signup no app Meta configurado. Ao concluir, o backend receberá o código e salvará o token criptografado.",
+    if (!window.FB || !sdkReady) {
+      setError("SDK da Meta ainda carregando. Aguarde alguns segundos e tente de novo.");
+      return;
+    }
+    setBusy("embedded");
+    setError("");
+    window.FB.login(
+      (response) => {
+        const code = response.authResponse?.code;
+        if (!code) {
+          setBusy(null);
+          setError("Autorização cancelada ou sem código. Tente novamente ou use o token manual.");
+          return;
+        }
+        void call(
+          "/api/meta/connect",
+          { mode: "embedded", code },
+          "embedded",
+        );
+      },
+      {
+        config_id: embeddedSignup.configId,
+        response_type: "code",
+        override_default_response_type: true,
+        extras: { setup: {}, featureType: "", sessionInfoVersion: "3" },
+      },
     );
   }
 
@@ -109,6 +174,11 @@ export function MetaConnectPanel({ canManage, connection, wabas, phones, embedde
                 {connection.lastSyncedAt
                   ? ` · sync ${new Date(connection.lastSyncedAt).toLocaleString("pt-BR")}`
                   : ""}
+                {embeddedSignup.configured
+                  ? sdkReady
+                    ? " · SDK Meta pronto"
+                    : " · carregando SDK…"
+                  : " · Embedded Signup pendente de config"}
               </p>
               {connection.lastError && (
                 <p className="mt-2 text-sm text-red-600">{connection.lastError}</p>
@@ -215,6 +285,83 @@ export function MetaConnectPanel({ canManage, connection, wabas, phones, embedde
               </li>
             ))}
           </ul>
+        )}
+
+        {canManage && phones.length > 0 && (
+          <div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-4">
+            <p className="text-sm font-medium">Registrar / verificar número</p>
+            <p className="text-[12px] text-slate-500">
+              Fluxo guiado no painel — sem Postman. Envie o código, confirme e registre com PIN de 6 dígitos.
+            </p>
+            <select
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+              value={selectedPhone}
+              onChange={(e) => setSelectedPhone(e.target.value)}
+            >
+              {phones.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.displayPhoneNumber} · {p.status}
+                </option>
+              ))}
+            </select>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={busy !== null}
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium"
+                onClick={() =>
+                  void call(
+                    "/api/phone-numbers/register",
+                    { phoneNumberId: selectedPhone, action: "request_code", method: "SMS" },
+                    "code",
+                  )
+                }
+              >
+                Enviar código
+              </button>
+              <input
+                className="h-9 w-28 rounded-xl border border-slate-200 px-2 text-sm"
+                placeholder="Código"
+                value={verifyCode}
+                onChange={(e) => setVerifyCode(e.target.value)}
+              />
+              <button
+                type="button"
+                disabled={busy !== null || !verifyCode}
+                className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium disabled:opacity-50"
+                onClick={() =>
+                  void call(
+                    "/api/phone-numbers/register",
+                    { phoneNumberId: selectedPhone, action: "verify_code", code: verifyCode },
+                    "verify",
+                  )
+                }
+              >
+                Confirmar
+              </button>
+              <input
+                className="h-9 w-28 rounded-xl border border-slate-200 px-2 text-sm"
+                placeholder="PIN 6 dígitos"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                maxLength={6}
+              />
+              <button
+                type="button"
+                disabled={busy !== null || pin.length !== 6}
+                className="h-9 rounded-xl bg-slate-900 px-3 text-sm font-medium text-white disabled:opacity-50"
+                onClick={() =>
+                  void call(
+                    "/api/phone-numbers/register",
+                    { phoneNumberId: selectedPhone, action: "register", pin },
+                    "reg",
+                  )
+                }
+              >
+                Registrar
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

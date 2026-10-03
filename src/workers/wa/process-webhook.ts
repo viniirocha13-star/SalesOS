@@ -242,6 +242,8 @@ async function handleInbound(organizationId: string | null, event: MessageEvent)
       metadata: { text: event.text, source: "inbound_keyword" },
     });
     logInfo("wa.contact.opted_out", { contactId: contact.id });
+    const { runAutomations: runOptOut } = await import("@/wa/automations");
+    await runOptOut(orgId, "CONTACT_OPTED_OUT", { contactId: contact.id, conversationId: conversation.id });
   }
 
   // Dispara automações simples

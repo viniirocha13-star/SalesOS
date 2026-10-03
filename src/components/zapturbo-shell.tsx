@@ -22,6 +22,7 @@ import {
   LogOut,
   Zap,
   ChevronDown,
+  Workflow,
 } from "lucide-react";
 import { useState } from "react";
 import { logout } from "@/app/login/logout-action";
@@ -35,6 +36,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard }[] = [
   { href: "/conversations", label: "Conversas", icon: MessageCircle },
   { href: "/templates", label: "Modelos de mensagem", icon: MessageSquareText },
   { href: "/schedules", label: "Agendamentos", icon: CalendarClock },
+  { href: "/automations", label: "Automações", icon: Workflow },
   { href: "/reports", label: "Relatórios", icon: BarChart3 },
   { href: "/settings/integrations", label: "Integrações", icon: Plug },
   { href: "/settings/team", label: "Equipe", icon: UsersRound },

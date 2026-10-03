@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { InboxComposer } from "@/components/inbox-composer";
 import { requireOrg } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 
@@ -19,12 +20,19 @@ export default async function ConversationsPage({
 }) {
   const ctx = await requireOrg("inbox.view");
   const { id } = await searchParams;
-  const conversations = await prisma.waConversation.findMany({
-    where: { organizationId: ctx.organization.id },
-    include: { contact: true, phoneNumber: true },
-    orderBy: { updatedAt: "desc" },
-    take: 40,
-  });
+  const [conversations, templates] = await Promise.all([
+    prisma.waConversation.findMany({
+      where: { organizationId: ctx.organization.id },
+      include: { contact: true, phoneNumber: true },
+      orderBy: { updatedAt: "desc" },
+      take: 40,
+    }),
+    prisma.messageTemplate.findMany({
+      where: { organizationId: ctx.organization.id, status: "APPROVED" },
+      select: { name: true, language: true },
+      take: 50,
+    }),
+  ]);
   const active = conversations.find((c) => c.id === id) ?? conversations[0];
   const messages = active
     ? await prisma.waMessage.findMany({
@@ -34,6 +42,13 @@ export default async function ConversationsPage({
       })
     : [];
   const window = windowLabel(active?.serviceWindowExpiresAt);
+
+  if (active && active.unreadCount > 0) {
+    await prisma.waConversation.update({
+      where: { id: active.id },
+      data: { unreadCount: 0 },
+    });
+  }
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-7rem)] max-w-6xl flex-col">
@@ -94,11 +109,11 @@ export default async function ConversationsPage({
                   </div>
                 ))}
               </div>
-              <div className="border-t border-slate-100 px-4 py-3 text-[12px] text-slate-500">
-                {window.open
-                  ? "Mensagem livre permitida enquanto a janela estiver aberta."
-                  : "Janela encerrada — responda com um template aprovado."}
-              </div>
+              <InboxComposer
+                conversationId={active.id}
+                windowOpen={window.open}
+                templates={templates}
+              />
             </>
           ) : (
             <p className="m-auto text-sm text-slate-400">Selecione uma conversa</p>

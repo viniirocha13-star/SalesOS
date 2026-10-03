@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
+import { PricingRateForm } from "@/components/pricing-rate-form";
 import { requireOrg } from "@/lib/org";
 import { prisma } from "@/lib/prisma";
 
 export default async function BillingSettingsPage() {
   const ctx = await requireOrg("billing.view");
-  const [sub, usage] = await Promise.all([
+  const [sub, usage, rates] = await Promise.all([
     prisma.subscription.findUnique({
       where: { organizationId: ctx.organization.id },
       include: { plan: true },
@@ -14,8 +15,16 @@ export default async function BillingSettingsPage() {
       where: { organizationId: ctx.organization.id, metric: "messages" },
       orderBy: { periodStart: "desc" },
     }),
+    prisma.pricingRate.findMany({
+      where: {
+        OR: [{ organizationId: ctx.organization.id }, { organizationId: null }],
+      },
+      orderBy: [{ market: "asc" }, { category: "asc" }, { effectiveFrom: "desc" }],
+      take: 20,
+    }),
   ]);
   const plans = await prisma.plan.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } });
+  const canManage = ctx.role === "OWNER" || ctx.isSuperAdmin;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -55,6 +64,28 @@ export default async function BillingSettingsPage() {
           </div>
         ))}
       </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-3 text-[15px] font-semibold">Tarifas Meta configuradas</h2>
+        {rates.length === 0 ? (
+          <p className="text-sm text-slate-400">Nenhuma tarifa. Cadastre para estimar custos de campanha.</p>
+        ) : (
+          <ul className="divide-y divide-slate-100 text-sm">
+            {rates.map((r) => (
+              <li key={r.id} className="flex justify-between py-2">
+                <span>
+                  {r.market} · {r.category}
+                  {!r.organizationId && <span className="ml-1 text-[10px] text-slate-400">global</span>}
+                </span>
+                <span className="tabular-nums">
+                  {Number(r.rate).toLocaleString("pt-BR", { style: "currency", currency: r.currency })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {canManage && <PricingRateForm />}
     </div>
   );
 }

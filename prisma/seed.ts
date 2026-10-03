@@ -569,6 +569,24 @@ async function main() {
     },
   });
 
+  // Tarifas de exemplo (configuráveis — NÃO são garantia da Meta)
+  for (const row of [
+    { category: "MARKETING" as const, rate: 0.0625 },
+    { category: "UTILITY" as const, rate: 0.04 },
+    { category: "AUTHENTICATION" as const, rate: 0.0315 },
+  ]) {
+    await prisma.pricingRate.create({
+      data: {
+        organizationId: org.id,
+        market: "BR",
+        category: row.category,
+        currency: "BRL",
+        rate: row.rate,
+        source: "seed_example",
+      },
+    });
+  }
+
   const prompt = await prisma.prompt.create({
     data: { slug: "sales_system", name: "Prompt Terra (vendedor)" },
   });
