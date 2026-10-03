@@ -6,19 +6,26 @@ Documentação em `docs/`: ARCHITECTURE, DATABASE, WHATSAPP, AI, LUNA, SECURITY,
 
 ## PLIM AUTOMAÇÃO (PLIM PROMOS)
 
-Camada de automação de afiliados sobre este Sales OS (`brisa-sales-ai`). Especificação: `docs/PLIM-ESPECIFICACAO.md`. Arquitetura e convenções: `docs/ARQUITETURA.md`.
+Automação de afiliados (ofertas, rotas, filas, tracking `/o/[code]`, comissões, cliques, contatos) sobre este Sales OS. Especificação: `docs/PLIM-ESPECIFICACAO.md`.
+
+**Subir localmente**
 
 ```bash
-# Após migrate + seed (inclui dados DEMO PLIM)
+cp .env.example .env
+# Postgres (docker compose ou serviço local) + Redis para worker/filas
+npx prisma migrate deploy
+npx prisma db seed
 npm run dev:web
-# Login seed → redireciona para /plim (Visão Geral)
+# Login seed: ursula.b@example.com / Brisa@2026 → /plim
 ```
 
-Variáveis novas (ver `.env.example`): `CRON_SECRET`, `PLIM_STORAGE_DRIVER`, `SUPABASE_*` (storage produção).
+**Variáveis PLIM** (`.env.example`): afiliados (`PLIM_*_TAG` / IDs), `PLIM_WEBHOOK_SECRET` (webhook de ofertas), `CRON_SECRET` (cron `/api/cron/queue`), `TELEGRAM_BOT_TOKEN`, `OPENAI_API_KEY`, `META_ADS_TOKEN`, storage (`PLIM_STORAGE_*`, `SUPABASE_*`). MODO TESTE vem ligado no seed — envios reais ficam bloqueados até desligar em Configurações.
 
-Cron Vercel (fila stub Etapa 1): `GET /api/cron/queue` com header `Authorization: Bearer $CRON_SECRET`.
+**Deploy**: `vercel.json` agenda o cron da fila; Railway mantém `releaseCommand` com `prisma migrate deploy` e worker separado (`npm run worker`).
 
-Rotas: módulos PLIM em `/plim/*`; book de ofertas Sales OS permanece em `/ofertas`.
+Integração completa: PR draft contra `main` no branch `cursor/plim-integracao` (partes anteriores: PRs #3 fundação, #4 operação, #5 analytics).
+
+Rotas PLIM em `/plim/*`; book comercial Sales OS continua em `/ofertas`.
 
 ## Porta e URL reais
 
