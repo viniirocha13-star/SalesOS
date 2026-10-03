@@ -1,0 +1,13 @@
+{
+  "name": "PLIM AUTOMAÇÃO",
+  "short_name": "PLIM",
+  "description": "PLIM PROMOS — automação de afiliados",
+  "start_url": "/plim",
+  "display": "standalone",
+  "background_color": "#f6f4fb",
+  "theme_color": "#7C3AED",
+  "icons": [
+    { "src": "/icons/plim-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/plim-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

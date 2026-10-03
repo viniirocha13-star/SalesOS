@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import * as geocode from "@/integrations/geocode/provider";
 import { parseLatLng } from "@/integrations/geocode/provider";
 import { mapOfficialPayload, officialViabilityConfigured } from "@/integrations/viability/official";
 import { OfficialOrOperatorViabilityProvider } from "@/integrations/viability/provider";
@@ -18,6 +19,12 @@ describe("Viabilidade: geocode + API oficial ou fila", () => {
   });
 
   it("sem API oficial não afirma cobertura — fila o operador", async () => {
+    vi.spyOn(geocode, "geocodeAddress").mockResolvedValue({
+      latitude: -3.8916,
+      longitude: -38.625,
+      source: "nominatim",
+      label: "Maranguape, CE",
+    });
     delete process.env.BRISANET_VIABILITY_URL;
     delete process.env.BRISANET_VIABILITY_TOKEN;
     expect(officialViabilityConfigured()).toBe(false);

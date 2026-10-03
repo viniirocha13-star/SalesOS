@@ -1,0 +1,21 @@
+import { chromium } from "@playwright/test";
+import { mkdir } from "fs/promises";
+
+const base = process.env.APP_URL ?? "http://127.0.0.1:43147";
+const out = "/opt/cursor/artifacts/screenshots";
+await mkdir(out, { recursive: true });
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+await page.goto(`${base}/login`, { waitUntil: "networkidle" });
+await page.waitForFunction(() => document.querySelector('[data-testid="login-ready"]'), { timeout: 120_000 });
+await page.getByLabel("E-mail").fill("ursula.b@example.com");
+await page.getByLabel("Senha").fill("Brisa@2026");
+await page.getByRole("button", { name: "Entrar" }).click();
+await page.waitForURL(/\/plim/);
+await page.waitForTimeout(1500);
+await page.screenshot({ path: `${out}/plim-dashboard-desktop.png`, fullPage: true });
+await page.setViewportSize({ width: 390, height: 844 });
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${out}/plim-dashboard-mobile.png`, fullPage: true });
+await browser.close();
+console.log("screenshots ok");

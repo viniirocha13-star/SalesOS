@@ -9,15 +9,22 @@ const sans = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "Brisa Sales AI",
-  description: "CRM de vendas assistidas por IA para telecomunicações Brisanet",
+  title: "PLIM AUTOMAÇÃO",
+  description: "PLIM PROMOS — automação de afiliados sobre Sales OS",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#7C3AED",
+  appleWebApp: { capable: true, title: "PLIM" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR" className={`${sans.variable} h-full antialiased`}>
+      <head>
+        <link rel="apple-touch-icon" href="/icons/plim-192.png" />
+      </head>
       <body className="min-h-full font-sans">
         <Providers>{children}</Providers>
+        <script src="/sw-register.js" defer />
       </body>
     </html>
   );

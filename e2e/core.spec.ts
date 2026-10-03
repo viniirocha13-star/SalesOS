@@ -8,10 +8,17 @@ async function login(page: import("@playwright/test").Page, email = "ursula.b@ex
   await page.getByRole("button", { name: "Entrar" }).click();
 }
 
-test("login válido abre o dashboard", async ({ page }) => {
+async function openSalesDashboard(page: import("@playwright/test").Page) {
   await login(page);
-  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page).toHaveURL(/\/plim/);
+  await page.goto("/dashboard");
   await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
+}
+
+test("login válido abre o dashboard PLIM", async ({ page }) => {
+  await login(page);
+  await expect(page).toHaveURL(/\/plim/);
+  await expect(page.getByRole("heading", { name: "Visão Geral" })).toBeVisible({ timeout: 20_000 });
 });
 
 test("credenciais inválidas mostram alerta", async ({ page }) => {
@@ -27,15 +34,13 @@ test("rota protegida deslogado redireciona para login", async ({ page }) => {
 });
 
 test("login → Books e ofertas", async ({ page }) => {
-  await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("link", { name: "Ofertas" }).click();
+  await openSalesDashboard(page);
+  await page.getByRole("link", { name: "Book de Ofertas" }).click();
   await expect(page.getByRole("heading", { name: "Books e ofertas" })).toBeVisible();
 });
 
 test("login → Leads → abrir lead", async ({ page }) => {
-  await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
+  await openSalesDashboard(page);
   await page.getByRole("link", { name: "Leads" }).click();
   await expect(page.getByRole("heading", { name: "Leads" })).toBeVisible();
   await page.getByRole("link", { name: "Maria Alves" }).click();
@@ -44,8 +49,7 @@ test("login → Leads → abrir lead", async ({ page }) => {
 });
 
 test("login → Inbox → abrir conversa", async ({ page }) => {
-  await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
+  await openSalesDashboard(page);
   await page.getByRole("link", { name: "Inbox" }).click();
   await expect(page.getByRole("heading", { name: "Inbox WhatsApp" })).toBeVisible();
   await page.getByRole("button", { name: /Conversa Maria Alves/ }).click();
@@ -53,8 +57,7 @@ test("login → Inbox → abrir conversa", async ({ page }) => {
 });
 
 test("Laboratório: objeção de preço sem desconto inventado", async ({ page }) => {
-  await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
+  await openSalesDashboard(page);
   await page.getByRole("link", { name: "Laboratório" }).click();
   await page.getByTestId("new-simulator").click();
   await expect(page).toHaveURL(/\/conversas\/.+/);
@@ -69,8 +72,7 @@ test("Laboratório: objeção de preço sem desconto inventado", async ({ page }
 });
 
 test("Laboratório: venda até o cliente enviar os dados", async ({ page }) => {
-  await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
+  await openSalesDashboard(page);
   await page.getByRole("link", { name: "Laboratório" }).click();
   await page.getByTestId("new-simulator").click();
   await expect(page).toHaveURL(/\/conversas\/.+/);
@@ -85,8 +87,7 @@ test("Laboratório: venda até o cliente enviar os dados", async ({ page }) => {
 });
 
 test("Laboratório abre conversa", async ({ page }) => {
-  await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
+  await openSalesDashboard(page);
   await page.getByRole("link", { name: "Laboratório" }).click();
   await expect(page.getByRole("heading", { name: "Conversas" })).toBeVisible();
   await page.getByRole("link", { name: /Maria Alves|SIMULATOR|WHATSAPP/ }).first().click();
@@ -94,8 +95,7 @@ test("Laboratório abre conversa", async ({ page }) => {
 });
 
 test("Inbox → assumir → composer humano → devolver para IA", async ({ page }) => {
-  await login(page);
-  await expect(page.getByRole("heading", { name: "Dashboard comercial" })).toBeVisible({ timeout: 20_000 });
+  await openSalesDashboard(page);
   await page.getByRole("link", { name: "Inbox" }).click();
   await page.getByRole("button", { name: /Conversa Maria Alves/ }).click();
   await expect(page.getByRole("heading", { name: "Lead" })).toBeVisible();

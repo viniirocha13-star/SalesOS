@@ -1,31 +1,24 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
-import { AppShell } from "@/components/app-shell";
+import { PlimAppShell } from "@/components/plim/plim-app-shell";
 import type { Role } from "@prisma/client";
+import { getPlimContext, ensurePlimSettings } from "@/lib/plim/tenant-context";
+import { resolvePlimProfile } from "@/lib/plim/profile";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
-  const [queueCount, inboxCount, wa] = await Promise.all([
-    prisma.preSale.count({ where: { status: { in: ["PRONTA", "PENDENCIA"] } } }),
-    prisma.conversation.count({ where: { status: { in: ["IA_ATIVA", "HANDOFF_HUMANO"] } } }),
-    prisma.integration.findFirst({ where: { slug: "whatsapp" } }),
-  ]);
-  const whatsapp =
-    wa?.status === "CONNECTED" || process.env.WHATSAPP_PROVIDER === "meta"
-      ? "connected"
-      : wa?.status === "ERROR"
-        ? "error"
-        : "mock";
+  const ctx = await getPlimContext(session.user.id, session.user.role as Role);
+  const settings = await ensurePlimSettings(ctx.tenantId);
+  const profile = resolvePlimProfile(session.user.role as Role, ctx.user.plimProfile);
+
   return (
-    <AppShell
+    <PlimAppShell
       user={{ name: session.user.name, email: session.user.email, role: session.user.role as Role }}
-      queueCount={queueCount}
-      inboxCount={inboxCount}
-      whatsapp={whatsapp}
+      plimProfile={profile}
+      testMode={settings.testMode}
     >
       {children}
-    </AppShell>
+    </PlimAppShell>
   );
 }

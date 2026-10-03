@@ -17,6 +17,7 @@ const PREFIXES: { prefix: string; permission: string }[] = [
   { prefix: "/relatorios", permission: "reports.view" },
   { prefix: "/admin", permission: "admin.audit" },
   { prefix: "/dashboard", permission: "dashboard.view" },
+  { prefix: "/plim", permission: "plim.access" },
 ];
 
 export function permissionForPath(pathname: string): string | null {

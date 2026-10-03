@@ -42,6 +42,7 @@ const permissions: Record<string, Role[]> = {
   "manage_ai": admin,
   "assume_conversation": ops,
   "view_financial_metrics": ["ADMIN", "SUPER_ADMIN", "MANAGER", "ANALISTA", "ANALYST"],
+  "plim.access": view,
 };
 
 export function can(role: Role, permission: string): boolean {
