@@ -44,6 +44,10 @@ async function main() {
   await prisma.domainEvent.deleteMany();
   await prisma.promptVersion.deleteMany();
   await prisma.prompt.deleteMany();
+  await prisma.plimSchedule.deleteMany();
+  await prisma.plimShortLink.deleteMany();
+  await prisma.plimMessageTemplate.deleteMany();
+  await prisma.plimBlockedWord.deleteMany();
   await prisma.plimClickEvent.deleteMany();
   await prisma.plimCommissionEvent.deleteMany();
   await prisma.plimQueueItem.deleteMany();
@@ -595,6 +599,27 @@ async function main() {
   } catch (error) {
     console.warn("Book Fortaleza não carregado no seed:", error);
   }
+
+  const blockedSeed = ["usado", "recondicionado", "seminovo", "réplica"];
+  for (const word of blockedSeed) {
+    await prisma.plimBlockedWord.upsert({
+      where: { tenantId_word: { tenantId: tenant.id, word } },
+      update: {},
+      create: { tenantId: tenant.id, word },
+    });
+  }
+
+  await prisma.plimMessageTemplate.upsert({
+    where: { id: "seed-plim-template" },
+    update: {},
+    create: {
+      id: "seed-plim-template",
+      tenantId: tenant.id,
+      name: "Padrão",
+      body: "{{produto}}\n\nDe {{preco_anterior}} por {{preco}}\n{{cupom}}\n{{link}}",
+      isDefault: true,
+    },
+  });
 
   const plimSettings = await prisma.plimWorkspaceSettings.upsert({
     where: { tenantId: tenant.id },

@@ -1,4 +1,5 @@
 import type { AffiliateAdapter, AffiliateConvertInput, AffiliateConvertResult } from "@/lib/affiliates/types";
+import { requireEnv } from "@/lib/affiliates/errors";
 
 export const magaluAdapter: AffiliateAdapter = {
   marketplace: "MAGALU",
@@ -9,6 +10,9 @@ export const magaluAdapter: AffiliateAdapter = {
     return false;
   },
   async convert(input: AffiliateConvertInput): Promise<AffiliateConvertResult> {
-    return { marketplace: "MAGALU", affiliateUrl: input.url, subId: input.subId, campaign: input.campaign };
+    const partner = requireEnv("PLIM_MAGALU_PARTNER_ID", "Magalu");
+    const sep = input.url.includes("?") ? "&" : "?";
+    const affiliateUrl = `${input.url}${sep}partner_id=${encodeURIComponent(partner)}`;
+    return { marketplace: "MAGALU", affiliateUrl, subId: input.subId, campaign: input.campaign };
   },
 };

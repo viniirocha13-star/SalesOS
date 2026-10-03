@@ -21,6 +21,7 @@ export default auth((request) => {
     pathname.startsWith("/manifest") ||
     pathname.startsWith("/sw.js") ||
     pathname.startsWith("/api/ready") ||
+    pathname.startsWith("/o/") ||
     pathname.startsWith("/_next")
   ) {
     if (pathname.startsWith("/login") && request.auth?.user) {

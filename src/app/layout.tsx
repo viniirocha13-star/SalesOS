@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "PLIM" },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={`${sans.variable} h-full antialiased`}>
       <head>

@@ -26,3 +26,13 @@ export function detectMarketplace(url: string): PlimMarketplace | null {
 export function getAdapterForUrl(url: string): AffiliateAdapter | null {
   return affiliateAdapters.find((a) => a.detect(url)) ?? null;
 }
+
+export async function convertAffiliateUrl(input: {
+  url: string;
+  subId?: string;
+  campaign?: string;
+}) {
+  const adapter = getAdapterForUrl(input.url);
+  if (!adapter) throw new Error("Marketplace não reconhecido para este link.");
+  return adapter.convert(input);
+}

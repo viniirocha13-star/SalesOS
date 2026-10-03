@@ -9,6 +9,7 @@ describe("Affiliate adapters", () => {
   });
 
   it("converte com assinatura stub", async () => {
+    process.env.PLIM_AMAZON_TAG = "plim-test-20";
     const adapter = getAdapterForUrl("https://www.amazon.com.br/dp/123");
     expect(adapter?.marketplace).toBe("AMAZON");
     const out = await adapter!.convert({ url: "https://www.amazon.com.br/dp/123", subId: "grupo1" });
