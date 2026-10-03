@@ -13,14 +13,7 @@ const FEATURES: Record<string, string> = {
   afiliados: "Afiliados",
   conversor: "Conversor de Links",
   editor: "Editor de Ofertas",
-  imagens: "Biblioteca de Imagens",
   filas: "Filas",
-  comissoes: "Comissões",
-  cliques: "Cliques",
-  resultados: "Resultados",
-  contatos: "Contatos",
-  exclusoes: "Exclusões",
-  historico: "Histórico",
   integracoes: "Integrações",
 };
 

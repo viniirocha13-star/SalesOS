@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Figtree } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "PLIM" },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR" className={`${sans.variable} h-full antialiased`}>
       <head>
