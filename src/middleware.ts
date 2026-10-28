@@ -13,6 +13,7 @@ export default auth((request) => {
   }
   if (
     pathname.startsWith("/login") ||
+    pathname.startsWith("/sossego") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/whatsapp/webhook") ||
     pathname.startsWith("/api/leads/capture") ||
